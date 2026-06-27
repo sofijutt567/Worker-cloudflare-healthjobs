@@ -1212,7 +1212,6 @@ ${city ? `
 <script>atOptions={'key':'333dc5bfbee4b34aa13ee95636901b9c','format':'iframe','height':60,'width':468,'params':{}};
 <\/script><script src="https://www.highperformanceformat.com/333dc5bfbee4b34aa13ee95636901b9c/invoke.js"><\/script></div>
 
-</div>
 <div class="sidebar-col">
 <!-- ── Frequently Asked Questions Section ─────────────────────────────── -->
 <div class="faq-section" id="faq-section">
@@ -1239,7 +1238,6 @@ ${city ? `
         <div class="related-skeleton"></div>
         <div class="related-skeleton"></div>
     </div>
-</div>
 </div>
 </div>
 </main>
