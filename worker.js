@@ -1185,6 +1185,7 @@ ${city ? `
 <\/script><script src="https://www.highperformanceformat.com/333dc5bfbee4b34aa13ee95636901b9c/invoke.js"><\/script></div>
 
 </div>
+<div class="sidebar-col">
 <!-- ── Frequently Asked Questions Section ─────────────────────────────── -->
 <div class="faq-section" id="faq-section">
     <div class="faq-heading">
@@ -1210,6 +1211,7 @@ ${city ? `
         <div class="related-skeleton"></div>
         <div class="related-skeleton"></div>
     </div>
+</div>
 </div>
 </div>
 </main>
@@ -1826,8 +1828,9 @@ function faqParseQuestionsReply(text) {
 }
 
 async function faqAskChat(prompt) {
+    // First try hacker-chat API
     var controller = new AbortController();
-    var timer = setTimeout(function(){ controller.abort(); }, 20000);
+    var timer = setTimeout(function(){ controller.abort(); }, 25000);
     try {
         var res = await fetch(window._faqApiUrl, {
             method: 'POST',
@@ -1837,11 +1840,41 @@ async function faqAskChat(prompt) {
         });
         clearTimeout(timer);
         var data = await res.json();
-        if (!res.ok) throw new Error((data && data.reply) || 'FAQ API error ' + res.status);
-        return (data && data.reply) || '';
-    } catch(e) {
+        if (res.ok) {
+            // Try all common reply field names
+            var reply = (data && (data.reply || data.text || data.content || data.answer || data.result || data.output || data.message)) || '';
+            if (reply && typeof reply === 'object') reply = JSON.stringify(reply);
+            if (reply && String(reply).trim()) return String(reply);
+        }
+    } catch(e1) {
         clearTimeout(timer);
-        throw e;
+    }
+    // Fallback: Anthropic API directly
+    var controller2 = new AbortController();
+    var timer2 = setTimeout(function(){ controller2.abort(); }, 30000);
+    try {
+        var res2 = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'anthropic-version': '2023-06-01',
+                'anthropic-dangerous-direct-browser-access': 'true'
+            },
+            body: JSON.stringify({
+                model: 'claude-haiku-4-5-20251001',
+                max_tokens: 500,
+                messages: [{ role: 'user', content: prompt }]
+            }),
+            signal: controller2.signal
+        });
+        clearTimeout(timer2);
+        var data2 = await res2.json();
+        if (!res2.ok) throw new Error('Anthropic API error ' + res2.status);
+        var block = (data2.content || []).find(function(b){ return b.type === 'text'; });
+        return (block && block.text) || '';
+    } catch(e2) {
+        clearTimeout(timer2);
+        throw e2;
     }
 }
 
