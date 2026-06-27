@@ -1,5 +1,14 @@
 {
   "name": "healthjobs-worker",
   "main": "worker.js",
-  "compatibility_date": "2026-06-27"
+  "compatibility_date": "2026-01-01",
+  "kv_namespaces": [
+    {
+      "binding": "JOBS_KV",
+      "id": "5a2e025877ca47caa98cb9c0a49e11c1"
+    }
+  ],
+  "ai": {
+    "binding": "AI"
+  }
 }
