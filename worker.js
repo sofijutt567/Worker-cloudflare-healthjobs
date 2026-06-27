@@ -87,6 +87,36 @@ export default {
         }
 
         // ── Cache Invalidation ────────────────────────────────────────────────
+// ── Purge ALL jobs cache (bulk) ──────────────────────────────────────────────
+if (url.pathname === "/api/purge-all-jobs" && request.method === "POST") {
+    const authHeader = request.headers.get("X-Admin-Secret");
+    if (!env.ADMIN_SECRET || authHeader !== env.ADMIN_SECRET) {
+        return new Response(JSON.stringify({ success: false, error: "Unauthorized" }), {
+            status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+    }
+    try {
+        // List all job: keys and delete them
+        let deleted = 0;
+        let cursor = undefined;
+        do {
+            const listed = cursor
+                ? await env.JOBS_KV.list({ prefix: "job:", cursor })
+                : await env.JOBS_KV.list({ prefix: "job:" });
+            await Promise.all(listed.keys.map(k => env.JOBS_KV.delete(k.name)));
+            deleted += listed.keys.length;
+            cursor = listed.list_complete ? undefined : listed.cursor;
+        } while (cursor);
+        return new Response(JSON.stringify({ success: true, deleted }), {
+            status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+    } catch(e) {
+        return new Response(JSON.stringify({ success: false, error: e.message }), {
+            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+    }
+}
+
 if (url.pathname === "/api/invalidate-cache" && request.method === "POST") {
     const authHeader = request.headers.get("X-Admin-Secret");
     if (!env.ADMIN_SECRET || authHeader !== env.ADMIN_SECRET) {
@@ -878,7 +908,7 @@ header{background:var(--bg-white);padding:0 15px;display:flex;align-items:center
 .back-btn:hover{color:var(--primary-blue);}
 .back-btn svg{width:26px;height:26px;fill:currentColor;}
 .logo-text{font-size:18px;font-weight:700;color:var(--text-main);}
-main{width:100%;padding:0 10px;}
+main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-box;}
 .details-card{background:var(--bg-white);border-radius:12px;border:1px solid var(--border-color);box-shadow:0 2px 4px rgba(0,0,0,0.02);padding:25px;margin-top:10px;}
 .user-section{display:flex;align-items:center;gap:15px;margin-bottom:25px;padding-bottom:20px;border-bottom:1px solid #f1f1f1;}
 .user-avatar{width:60px;height:60px;border-radius:50%;object-fit:cover;border:1px solid var(--border-color);}
@@ -1002,13 +1032,11 @@ main{width:100%;padding:0 10px;}
 .job-details-table tr:first-child .jdt-label{background:#1e3a5f;color:#fff;border-right:2px solid #fff;}
 @media(max-width:480px){.job-title{font-size:20px;}.details-card{padding:18px;}.highlights-box{grid-template-columns:1fr 1fr;}}
 .content-col{width:100%;min-width:0;}
-.sidebar-col{width:100%;margin-top:0;}
+.sidebar-col{width:100%;margin-top:0;box-sizing:border-box;}
 .page-layout{display:block;width:100%;}
 .site-footer{background:#fff;padding:24px 16px 40px;border-top:1px solid #cbd5e1;text-align:center;width:100%;}
 .pc-banner{display:none;}
-@media(min-width:701px){
-  main{display:block;margin:0 auto;max-width:700px;padding:0;}
-}
+/* max-width:700px applied directly to main */
 @media(min-width:1024px){
   .page-layout{display:block;width:100%;position:relative;}
   .pc-banner{display:flex;align-items:flex-start;justify-content:center;width:160px;position:fixed;top:75px;z-index:50;}
