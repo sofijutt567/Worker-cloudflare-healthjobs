@@ -1006,6 +1006,9 @@ main{width:100%;padding:0 10px;}
 .page-layout{display:block;width:100%;}
 .site-footer{background:#fff;padding:24px 16px 40px;border-top:1px solid #cbd5e1;text-align:center;width:100%;}
 .pc-banner{display:none;}
+@media(min-width:701px){
+  main{display:block;margin:0 auto;max-width:700px;padding:0;}
+}
 @media(min-width:1024px){
   .page-layout{display:block;width:100%;position:relative;}
   .pc-banner{display:flex;align-items:flex-start;justify-content:center;width:160px;position:fixed;top:75px;z-index:50;}
@@ -1013,7 +1016,6 @@ main{width:100%;padding:0 10px;}
   .pc-banner-right{left:min(calc(100% - 170px), calc(50% + 350px + 16px));}
   .pc-banner.pc-banner-stop{position:absolute;top:var(--pc-stop-top);}
   .pc-banner-inner{width:160px;min-height:600px;overflow:hidden;border-radius:10px;background:#f1f5f9;}
-  main{display:block;margin:0 auto;max-width:700px;padding:0;}
 }
 </style>
 </head>
@@ -1093,6 +1095,13 @@ ${expiresAt ? `<div id="expiry-badge-wrap"></div>` : ""}
 <div class="job-desc">${desc}</div>
 
 ${extLinkHtml}
+${isEmployer ? `<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:14px 16px;margin:14px 0;display:flex;align-items:center;gap:12px;">
+  <span style="font-size:26px;">⚠️</span>
+  <div>
+    <div style="font-size:13px;font-weight:800;color:#9a3412;margin-bottom:3px;">Stay Safe From Job Fraud</div>
+    <div style="font-size:12px;color:#c2410c;line-height:1.55;">Please contact this employer carefully and never pay any money to apply for or accept a job. Health Jobs Portal is not responsible for any fraud, scam, or financial loss related to this post.</div>
+  </div>
+</div>` : ""}
 <!-- CV Maker Promo Note -->
 <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px 16px;margin:14px 0;display:flex;align-items:center;gap:12px;">
   <span style="font-size:28px;">📄</span>
@@ -1836,7 +1845,8 @@ async function faqAskChat(prompt) {
     }
 }
 
-async function loadFaqQuestions() {
+async function loadFaqQuestions(attempt) {
+    attempt = attempt || 1;
     var list = document.getElementById('faq-list');
     if (!list) return;
     try {
@@ -1847,9 +1857,7 @@ async function loadFaqQuestions() {
         window._faqQuestions = faqParseQuestionsReply(reply).slice(0, 5);
 
         if (!window._faqQuestions.length) {
-            var sec = document.getElementById('faq-section');
-            if (sec) sec.remove();
-            return;
+            throw new Error('Empty FAQ list from API');
         }
 
         list.innerHTML = window._faqQuestions.map(function(q, i) {
@@ -1865,9 +1873,17 @@ async function loadFaqQuestions() {
                 '</div>';
         }).join('');
     } catch(err) {
+        console.log('FAQ questions error (attempt ' + attempt + '):', err);
+        // Retry a couple of times before giving up — the FAQ backend can be
+        // slow to wake up or briefly time out, so one failed attempt should
+        // not permanently remove the section after the user has already
+        // seen the loading skeletons.
+        if (attempt < 3) {
+            setTimeout(function() { loadFaqQuestions(attempt + 1); }, 1500 * attempt);
+            return;
+        }
         var sec = document.getElementById('faq-section');
         if (sec) sec.remove();
-        console.log('FAQ questions error:', err);
     }
 }
 
@@ -2334,6 +2350,9 @@ main{width:100%;padding:0 10px;}
 .page-layout{display:block;width:100%;}
 .site-footer{background:#fff;padding:24px 16px 40px;border-top:1px solid #cbd5e1;text-align:center;width:100%;}
 .pc-banner{display:none;}
+@media(min-width:701px){
+  main{display:block;margin:0 auto;max-width:700px;padding:0;}
+}
 @media(min-width:1024px){
   .page-layout{display:block;width:100%;position:relative;}
   .pc-banner{display:flex;align-items:flex-start;justify-content:center;width:160px;position:fixed;top:75px;z-index:50;}
@@ -2341,7 +2360,6 @@ main{width:100%;padding:0 10px;}
   .pc-banner-right{left:min(calc(100% - 170px), calc(50% + 350px + 16px));}
   .pc-banner.pc-banner-stop{position:absolute;top:var(--pc-stop-top);}
   .pc-banner-inner{width:160px;min-height:600px;overflow:hidden;border-radius:10px;background:#f1f5f9;}
-  main{display:block;margin:0 auto;max-width:700px;padding:0;}
 }
 </style>
 </head>
@@ -2446,8 +2464,6 @@ ${chatBtn}
 <script>atOptions={'key':'333dc5bfbee4b34aa13ee95636901b9c','format':'iframe','height':60,'width':468,'params':{}};
 <\/script><script src="https://www.highperformanceformat.com/333dc5bfbee4b34aa13ee95636901b9c/invoke.js"><\/script></div>
 
-</div>
-</div>
 <div class="sidebar-col">
 <!-- ── Related Updates Section ───────────────────────────────────────── -->
 <div class="related-section">
@@ -2460,7 +2476,6 @@ ${chatBtn}
         <div class="related-skeleton"></div>
         <div class="related-skeleton"></div>
     </div>
-</div>
 </div>
 </div>
 </main>
@@ -3249,19 +3264,15 @@ main{width:100%;padding:16px 12px;}
 @media(max-width:480px){.note-title{font-size:19px;}.card{padding:16px;}}
 .content-col{width:100%;min-width:0;}
 .sidebar-col{width:100%;}
-@media(min-width:1024px){
-    main{max-width:1140px;}
-    .page-layout{display:flex;align-items:flex-start;gap:26px;justify-content:center;}
-    .content-col{flex:1;max-width:720px;min-width:0;}
-    .sidebar-col{width:360px;flex-shrink:0;position:sticky;top:85px;}
+@media(min-width:701px){
+  main{display:block;margin:0 auto;max-width:700px;padding:0 10px;}
 }
 .pc-banner{display:none;}
 @media(min-width:1024px){
-  main{max-width:1360px!important;}
   .page-layout{position:relative;}
   .pc-banner{display:flex;align-items:flex-start;justify-content:center;width:160px;position:fixed;top:75px;z-index:50;}
-  .pc-banner-left{left:max(10px, calc(50% - 540px - 160px - 16px));}
-  .pc-banner-right{left:min(calc(100% - 170px), calc(50% + 540px + 16px));}
+  .pc-banner-left{left:max(10px, calc(50% - 350px - 160px - 16px));}
+  .pc-banner-right{left:min(calc(100% - 170px), calc(50% + 350px + 16px));}
   .pc-banner.pc-banner-stop{position:absolute;top:var(--pc-stop-top);}
   .pc-banner-inner{width:160px;min-height:600px;overflow:hidden;border-radius:10px;background:#f1f5f9;}
 }
