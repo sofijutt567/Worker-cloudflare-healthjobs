@@ -1,0 +1,53 @@
+name = "healthjobs-worker"
+
+main = "worker.js"
+
+compatibility_date = "2026-01-01"
+
+# ── KV Namespace Binding ──────────────────────────────────────────
+
+# binding = the name your CODE uses (env.JOBS_KV) — this matches what
+
+#            your worker.js already calls everywhere, so leave it as is.
+
+# id      = the namespace's HEX ID (NOT its display name "MY_POSTS_KV").
+
+#            Find it in: Cloudflare dashboard → Storage & Databases → KV
+
+#            → click on "MY_POSTS_KV" → copy the ID shown there
+
+#            (looks like: 06779da6940b431db6e566b4846d64db)
+
+[[kv_namespaces]]
+
+binding = "JOBS_KV"
+
+id = "<5a2e025877ca47caa98cb9c0a49e11c1>"
+
+# ── Workers AI Binding ────────────────────────────────────────────
+
+# No ID needed — this is account-level. env.AI will be available
+
+# in your worker code automatically once this is deployed.
+
+[ai]
+
+binding = "AI"
+
+# ── Environment Variables / Secrets ───────────────────────────────
+
+# Secrets (API keys, tokens) should NOT be written here in plain text.
+
+# Set them once via: npx wrangler secret put SECRET_NAME
+
+# or in the Cloudflare dashboard under Settings > Variables (as "Secret" type),
+
+# which — unlike plain bindings — Cloudflare keeps even across Git deploys.
+
+#
+
+# Non-secret plain variables can go here if you have any, e.g.:
+
+# [vars]
+
+# SOME_PUBLIC_FLAG = "true"
