@@ -1933,6 +1933,7 @@ async function loadFaqQuestions(attempt) {
             'Generate exactly 5 short FAQ questions a visitor might ask about this job post. ' +
             'Return ONLY a JSON array of 5 question strings, no markdown, no extra text.';
         var reply = await faqAskChat(prompt);
+        console.log('RAW FAQ REPLY:', reply);
         window._faqQuestions = faqParseQuestionsReply(reply).slice(0, 5);
 
         if (!window._faqQuestions.length) {
