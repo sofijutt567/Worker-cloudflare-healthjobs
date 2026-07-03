@@ -393,7 +393,23 @@ console.log("Track result:", JSON.stringify(fsData));
         });
     }
 }
-        // ── Public Indexing Notify ────────────────────────────────────────────
+        // ── Clear Verified KV Cache ───────────────────────────────────────────
+if (url.pathname === "/api/clear-verified-cache" && request.method === "POST") {
+    try {
+        const body = await request.json();
+        const uids = body.uids || [];
+        await Promise.all(uids.map(uid => env.JOBS_KV.delete(`verified:${uid}`)));
+        return new Response(JSON.stringify({ success: true, cleared: uids.length }), {
+            status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+    } catch(e) {
+        return new Response(JSON.stringify({ success: false, error: e.message }), {
+            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+    }
+}
+
+// ── Public Indexing Notify ────────────────────────────────────────────
 if (url.pathname === "/api/notify-index" && request.method === "POST") {
     try {
         const body = await request.json();
@@ -1121,6 +1137,10 @@ ${expiresAt ? `<div id="expiry-badge-wrap"></div>` : ""}
 
 <div class="desc-title">Detail Description:</div>
 <div class="job-desc">${desc}</div>
+
+<a href="https://whatsapp.com/channel/0029VbCe3Mf2kNFroj9qx223" target="_blank" rel="noopener" style="display:block;margin:14px 0;">
+  <img src="https://healthjobportal.com/images/share.png" alt="Share and earn reward, make friends" style="width:100%;height:auto;border-radius:10px;display:block;">
+</a>
 
 ${extLinkHtml}
 ${isEmployer ? `<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:14px 16px;margin:14px 0;display:flex;align-items:center;gap:12px;">
@@ -3379,6 +3399,10 @@ main{width:100%;padding:16px 12px;}
 </div>
 <script type="text/javascript" src="//widget.trustpilot.com/bootstrap/v5/tp.widget.bootstrap.min.js" async><\/script>
     ${desc ? `<div class="note-desc">${e(desc)}</div>` : ""}
+
+<a href="https://whatsapp.com/channel/0029VbCe3Mf2kNFroj9qx223" target="_blank" rel="noopener" style="display:block;margin:14px 0;">
+  <img src="https://healthjobportal.com/images/share.png" alt="Share and earn reward, make friends" style="width:100%;height:auto;border-radius:10px;display:block;">
+</a>
 
 <div style="width:100%;text-align:center;overflow:hidden;margin:10px 0;">
 <script>atOptions={'key':'333dc5bfbee4b34aa13ee95636901b9c','format':'iframe','height':60,'width':468,'params':{}};
