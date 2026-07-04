@@ -1867,14 +1867,16 @@ function faqParseQuestionsReply(text) {
         t = t.replace(/^\`\`\`json\s*/i, '').replace(/^\`\`\`\s*/, '').replace(/\`\`\`\s*$/, '').trim();
         var match = t.match(/\[[\s\S]*\]/);
         var arr = JSON.parse(match ? match[0] : t);
-        return Array.isArray(arr) ? arr.filter(function(q){ return typeof q === 'string' && q.trim(); }).map(function(q){ return q.trim(); }) : [];
+        var out = Array.isArray(arr) ? arr.filter(function(q){ return typeof q === 'string' && q.trim(); }).map(function(q){ return q.trim(); }) : [];
+        console.log('DEBUG parse: arr=', JSON.stringify(arr), '| out.length=', out.length, '| out=', JSON.stringify(out));
+        return out;
     } catch(e) {
+        console.log('faqParseQuestionsReply: parse failed:', e.message, '| raw text was:', text);
         return [];
     }
 }
 
 async function faqAskChat(prompt) {
-    // First try hacker-chat API
     var controller = new AbortController();
     var timer = setTimeout(function(){ controller.abort(); }, 25000);
     try {
@@ -1885,42 +1887,22 @@ async function faqAskChat(prompt) {
             signal: controller.signal
         });
         clearTimeout(timer);
-        var data = await res.json();
-        if (res.ok) {
-            // Try all common reply field names
-            var reply = (data && (data.reply || data.text || data.content || data.answer || data.result || data.output || data.message)) || '';
-            if (reply && typeof reply === 'object') reply = JSON.stringify(reply);
-            if (reply && String(reply).trim()) return String(reply);
+        var data = await res.json().catch(function(){ return null; });
+        if (!res.ok) {
+            console.log('faqAskChat: backend returned', res.status, data);
+            throw new Error('Backend error ' + res.status + (data && data.reply ? (': ' + data.reply) : ''));
         }
+        var reply = (data && (data.reply || data.text || data.content || data.answer || data.result || data.output || data.message)) || '';
+        if (reply && typeof reply === 'object') reply = JSON.stringify(reply);
+        if (!reply || !String(reply).trim()) {
+            console.log('faqAskChat: empty reply body', data);
+            throw new Error('Empty reply from backend');
+        }
+        return String(reply);
     } catch(e1) {
         clearTimeout(timer);
-    }
-    // Fallback: Anthropic API directly
-    var controller2 = new AbortController();
-    var timer2 = setTimeout(function(){ controller2.abort(); }, 30000);
-    try {
-        var res2 = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'anthropic-version': '2023-06-01',
-                'anthropic-dangerous-direct-browser-access': 'true'
-            },
-            body: JSON.stringify({
-                model: 'claude-haiku-4-5-20251001',
-                max_tokens: 500,
-                messages: [{ role: 'user', content: prompt }]
-            }),
-            signal: controller2.signal
-        });
-        clearTimeout(timer2);
-        var data2 = await res2.json();
-        if (!res2.ok) throw new Error('Anthropic API error ' + res2.status);
-        var block = (data2.content || []).find(function(b){ return b.type === 'text'; });
-        return (block && block.text) || '';
-    } catch(e2) {
-        clearTimeout(timer2);
-        throw e2;
+        console.log('faqAskChat failed:', e1 && e1.message);
+        throw e1;
     }
 }
 
@@ -1935,6 +1917,7 @@ async function loadFaqQuestions(attempt) {
         var reply = await faqAskChat(prompt);
         console.log('RAW FAQ REPLY:', reply);
         window._faqQuestions = faqParseQuestionsReply(reply).slice(0, 5);
+        console.log('DEBUG loadFaqQuestions: attempt=', attempt, '| window._faqQuestions=', JSON.stringify(window._faqQuestions), '| length=', window._faqQuestions.length);
 
         if (!window._faqQuestions.length) {
             throw new Error('Empty FAQ list from API');
