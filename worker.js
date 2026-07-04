@@ -1864,9 +1864,23 @@ function faqBuildContext() {
 function faqParseQuestionsReply(text) {
     try {
         var t = String(text || '').trim();
-        t = t.replace(/^\`\`\`json\s*/i, '').replace(/^\`\`\`\s*/, '').replace(/\`\`\`\s*$/, '').trim();
-        var match = t.match(/\[[\s\S]*\]/);
-        var arr = JSON.parse(match ? match[0] : t);
+        // Strip markdown code fences WITHOUT regex backslashes (avoids
+        // backslash-loss when this script is embedded in nested template
+        // literals during deployment).
+        var fence = String.fromCharCode(96, 96, 96); // ``` without literal backticks in source
+        if (t.slice(0, 7).toLowerCase() === fence + 'json') t = t.slice(7);
+        else if (t.slice(0, 3) === fence) t = t.slice(3);
+        if (t.slice(-3) === fence) t = t.slice(0, -3);
+        t = t.trim();
+
+        // Extract the JSON array by locating the first '[' and last ']'
+        // instead of a regex, so there is nothing here that can be broken
+        // by escaping issues.
+        var start = t.indexOf('[');
+        var end = t.lastIndexOf(']');
+        var jsonStr = (start !== -1 && end !== -1 && end > start) ? t.substring(start, end + 1) : t;
+
+        var arr = JSON.parse(jsonStr);
         var out = Array.isArray(arr) ? arr.filter(function(q){ return typeof q === 'string' && q.trim(); }).map(function(q){ return q.trim(); }) : [];
         console.log('DEBUG parse: arr=', JSON.stringify(arr), '| out.length=', out.length, '| out=', JSON.stringify(out));
         return out;
