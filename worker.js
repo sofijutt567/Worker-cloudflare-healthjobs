@@ -1118,6 +1118,9 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
 .ai-chat-inputbar textarea{flex:1;resize:none;border:1px solid var(--border-color);border-radius:10px;padding:10px 12px;font-size:14px;font-family:inherit;max-height:100px;}
 .ai-chat-inputbar button{background:var(--primary-blue);color:#fff;border:none;border-radius:10px;padding:0 18px;font-weight:600;cursor:pointer;font-size:14px;}
 .ai-chat-inputbar button:disabled{opacity:.5;cursor:not-allowed;}
+#ai-chat-mic{background:#f1f5f9;color:#334155;border:1px solid var(--border-color);border-radius:10px;padding:0 12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+#ai-chat-mic.listening{background:#dc2626;color:#fff;border-color:#dc2626;animation:aiMicPulse 1.1s ease-in-out infinite;}
+@keyframes aiMicPulse{0%{box-shadow:0 0 0 0 rgba(220,38,38,.45);}70%{box-shadow:0 0 0 9px rgba(220,38,38,0);}100%{box-shadow:0 0 0 0 rgba(220,38,38,0);}}
 .faq-heading{font-size:15px;font-weight:800;color:var(--text-main);margin-bottom:12px;display:flex;align-items:center;gap:7px;}
 .faq-heading svg{width:18px;height:18px;fill:var(--primary-blue);}
 .faq-list{display:flex;flex-direction:column;gap:8px;}
@@ -1216,6 +1219,7 @@ ${expiresAt ? `<div id="expiry-badge-wrap"></div>` : ""}
 <div class="trustpilot-widget" data-locale="en-US" data-template-id="56278e9abfbbba0bdcd568bc" data-businessunit-id="6a32028be10624a15deb07d6" data-style-height="52px" data-style-width="100%" data-token="4d97b915-5abc-4d24-9888-b4072d453a26">
   <a href="https://www.trustpilot.com/review/healthjobportal.com" target="_blank" rel="noopener">Trustpilot</a>
 </div>
+<script type="text/javascript" src="//widget.trustpilot.com/bootstrap/v5/tp.widget.bootstrap.min.js" async><\/script>
 <!-- End TrustBox widget --> 
 
 
@@ -1382,6 +1386,9 @@ ${city ? `
     <div class="ai-chat-messages" id="ai-chat-messages"></div>
     <div class="ai-chat-inputbar">
         <textarea id="ai-chat-input" rows="1" placeholder="Ask a question about this job post..." onkeydown="aiChatHandleKey(event)"></textarea>
+        <button id="ai-chat-mic" type="button" onclick="aiChatToggleMic()" title="Speak your question" aria-label="Voice input" style="display:none;">
+            <svg id="ai-chat-mic-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
+        </button>
         <button id="ai-chat-send" onclick="aiChatSend()">Send</button>
     </div>
 </div>
@@ -2117,6 +2124,119 @@ function aiChatHandleKey(ev) {
     }
 }
 
+// ---- Voice input (speak-to-text) for the AI chat box ----
+// Uses the browser's built-in speech recognition (same engine behind the
+// Gboard mic). We start listening in Urdu mode; if what comes back is
+// actually Latin-script/English, we transparently restart recognition in
+// English mode so English speech is transcribed in English letters and
+// Urdu speech is transcribed in Urdu script, without the user having to
+// pick a language manually.
+(function () {
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    var micBtn = document.getElementById('ai-chat-mic');
+    if (!SR || !micBtn) return; // browser doesn't support it: keep button hidden
+
+    micBtn.style.display = '';
+
+    var recognition = null;
+    var listening = false;
+    var baseText = '';       // text already in the box before this recording started
+    var currentLang = 'ur-PK';
+    var restartingForLang = false;
+
+    function isLatinScript(s) {
+        var letters = (s.match(/[A-Za-z\u0600-\u06FF]/g) || []);
+        if (!letters.length) return false;
+        var latin = (s.match(/[A-Za-z]/g) || []).length;
+        return latin / letters.length > 0.6;
+    }
+
+    function makeRecognition(lang) {
+        var r = new SR();
+        r.lang = lang;
+        r.continuous = true;
+        r.interimResults = true;
+
+        r.onresult = function (event) {
+            var input = document.getElementById('ai-chat-input');
+            if (!input) return;
+            var finalChunk = '';
+            var interimChunk = '';
+            for (var i = event.resultIndex; i < event.results.length; i++) {
+                var transcript = event.results[i][0].transcript;
+                if (event.results[i].isFinal) finalChunk += transcript;
+                else interimChunk += transcript;
+            }
+
+            // If we're in Urdu mode but the speech is clearly Latin/English,
+            // restart recognition in English mode so it renders correctly.
+            var sample = finalChunk || interimChunk;
+            if (sample && currentLang === 'ur-PK' && isLatinScript(sample)) {
+                baseText = (baseText + ' ' + sample).trim();
+                input.value = baseText;
+                restartingForLang = true;
+                currentLang = 'en-US';
+                r.stop(); // onend will relaunch with the new lang
+                return;
+            }
+
+            var combined = (baseText + ' ' + finalChunk + interimChunk).trim();
+            input.value = combined;
+            input.dispatchEvent(new Event('input'));
+            if (finalChunk) baseText = (baseText + ' ' + finalChunk).trim();
+        };
+
+        r.onerror = function () {
+            stopListening();
+        };
+
+        r.onend = function () {
+            if (restartingForLang && listening) {
+                restartingForLang = false;
+                recognition = makeRecognition(currentLang);
+                try { recognition.start(); } catch (e) { stopListening(); }
+            } else {
+                stopListening();
+            }
+        };
+
+        return r;
+    }
+
+    function startListening() {
+        var input = document.getElementById('ai-chat-input');
+        baseText = input ? (input.value || '').trim() : '';
+        currentLang = 'ur-PK';
+        recognition = makeRecognition(currentLang);
+        try {
+            recognition.start();
+            listening = true;
+            micBtn.classList.add('listening');
+        } catch (e) {
+            listening = false;
+        }
+    }
+
+    function stopListening() {
+        listening = false;
+        restartingForLang = false;
+        micBtn.classList.remove('listening');
+        if (recognition) {
+            try { recognition.stop(); } catch (e) {}
+        }
+        var input = document.getElementById('ai-chat-input');
+        if (input) setTimeout(function () { input.focus(); }, 50);
+    }
+
+    window.aiChatToggleMic = function () {
+        if (listening) {
+            stopListening();
+        } else {
+            startListening();
+        }
+    };
+})();
+
 function aiChatEscapeHtml(s) {
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
@@ -2152,7 +2272,8 @@ function aiChatRenderMarkdown(raw) {
 }
 
 function aiChatInline(s) {
-    return s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    var boldRe = new RegExp('\\*\\*(.+?)\\*\\*', 'g');
+    return String(s || '').replace(boldRe, '<strong>$1</strong>');
 }
 
 function aiChatAppendMessage(role, text, isLoading) {
@@ -2715,6 +2836,7 @@ ${title ? `<div class="update-title">${e(title)}</div>` : ""}
 <div class="trustpilot-widget" data-locale="en-US" data-template-id="56278e9abfbbba0bdcd568bc" data-businessunit-id="6a32028be10624a15deb07d6" data-style-height="52px" data-style-width="100%" data-token="4d97b915-5abc-4d24-9888-b4072d453a26">
   <a href="https://www.trustpilot.com/review/healthjobportal.com" target="_blank" rel="noopener">Trustpilot</a>
 </div>
+<script type="text/javascript" src="//widget.trustpilot.com/bootstrap/v5/tp.widget.bootstrap.min.js" async><\/script>
 <!-- End TrustBox widget --> 
 
 
