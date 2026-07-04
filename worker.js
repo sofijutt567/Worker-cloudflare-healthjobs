@@ -2059,8 +2059,11 @@ window._aiChatHistory = [];
 window._aiChatBusy = false;
 
 function openAiChat() {
-    document.getElementById('ai-chat-overlay').classList.add('open');
-    document.getElementById('ai-chat-modal').classList.add('open');
+    var overlay = document.getElementById('ai-chat-overlay');
+    var modal   = document.getElementById('ai-chat-modal');
+    if (!overlay || !modal) { console.error('Ask AI: overlay/modal element missing from DOM'); return; }
+    overlay.classList.add('open');
+    modal.classList.add('open');
     document.body.style.overflow = 'hidden';
     var msgBox = document.getElementById('ai-chat-messages');
     if (msgBox && !msgBox.children.length && !window._aiChatHistory.length) {
@@ -2071,8 +2074,10 @@ function openAiChat() {
 }
 
 function closeAiChat() {
-    document.getElementById('ai-chat-overlay').classList.remove('open');
-    document.getElementById('ai-chat-modal').classList.remove('open');
+    var overlay = document.getElementById('ai-chat-overlay');
+    var modal   = document.getElementById('ai-chat-modal');
+    if (overlay) overlay.classList.remove('open');
+    if (modal) modal.classList.remove('open');
     document.body.style.overflow = '';
 }
 
@@ -2363,10 +2368,10 @@ async function submitReport(){
 })();
 <\/script>
 <!-- Ask AI Floating Button -->
-<div id="ai-float-btn" onclick="openAiChat()" style="position:fixed;bottom:160px;right:16px;z-index:9997;cursor:pointer;display:flex;align-items:center;justify-content:flex-end;animation:waBounce 2s ease-in-out infinite;">
-  <div id="ai-float-label" style="max-width:0;overflow:hidden;white-space:nowrap;opacity:0;background:#0a66c2;color:#fff;font-size:12px;font-weight:700;padding:0;border-radius:20px;margin-right:0;transition:max-width .4s ease,opacity .3s ease,padding .4s ease,margin-right .4s ease;height:38px;display:flex;align-items:center;box-shadow:0 2px 8px rgba(10,102,194,0.4);">Ask AI</div>
-  <div style="background:linear-gradient(135deg,#0a66c2,#00c6ff);width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(10,102,194,0.5);flex-shrink:0;">
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg>
+<div id="ai-float-btn" onclick="openAiChat()" style="position:fixed;bottom:240px;right:16px;z-index:9997;cursor:pointer;display:flex;align-items:center;justify-content:flex-end;">
+  <div id="ai-float-label" style="max-width:0;overflow:hidden;white-space:nowrap;opacity:0;background:#64748b;color:#fff;font-size:11px;font-weight:600;padding:0;border-radius:16px;margin-right:0;transition:max-width .4s ease,opacity .3s ease,padding .4s ease,margin-right .4s ease;height:30px;display:flex;align-items:center;box-shadow:0 2px 6px rgba(0,0,0,0.15);">Ask AI</div>
+  <div style="background:#94a3b8;width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.2);flex-shrink:0;">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg>
   </div>
 </div>
 <script>
