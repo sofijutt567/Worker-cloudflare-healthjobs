@@ -428,7 +428,7 @@ const html = buildNotePage(note, noteId, verified);
                     "5. Do not use markdown formatting, headings, or bullet symbols, reply in plain conversational sentences."
                 ].join(NL);
 
-                const aiResult = await env.AI.run("@cf/zai-org/glm-4.7-flash", {
+                const aiResult = await env.AI.run("@cf/meta/llama-3.3-70b-instruct-fp8-fast", {
                     messages: [
                         { role: "system", content: systemPrompt },
                         { role: "user", content: String(prompt) }
@@ -1249,8 +1249,9 @@ ${expiresAt ? `<div id="expiry-badge-wrap"></div>` : ""}
 
 <div class="desc-title" style="display:flex;align-items:center;gap:8px;">
   <span>Detail Description:</span>
-  <span onclick="openAiChat()" title="Ask AI about this job" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#fff;border:1px solid #cbd5e1;cursor:pointer;flex-shrink:0;">
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg>
+  <span onclick="openAiChat()" title="Ask AI about this job" style="display:inline-flex;align-items:center;gap:3px;cursor:pointer;flex-shrink:0;">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="#7c3aed"><path d="M12 2c.6 3.2 2.2 4.8 5.4 5.4-3.2.6-4.8 2.2-5.4 5.4-.6-3.2-2.2-4.8-5.4-5.4C9.8 6.8 11.4 5.2 12 2Zm7 9c.4 1.8 1.2 2.6 3 3-1.8.4-2.6 1.2-3 3-.4-1.8-1.2-2.6-3-3 1.8-.4 2.6-1.2 3-3Z"/></svg>
+    <span style="font-size:11px;font-weight:700;color:#7c3aed;">AI</span>
   </span>
 </div>
 <div class="job-desc">${desc}</div>
@@ -2229,25 +2230,11 @@ window.toggleFaqItem = async function(i) {
     }
 };
 
-// keep the WhatsApp floating button below any open FAQ answer box
+// WhatsApp floating button now stays fixed in place at all times —
+// it no longer follows the open FAQ answer box.
 function repositionWaButton() {
-    const btn = document.getElementById('wa-channel-btn');
-    if (!btn) return;
-    const openItem = document.querySelector('.faq-item.open');
-    if (!openItem) {
-        btn.style.top = '';
-        btn.style.bottom = '90px';
-        return;
-    }
-    const rect = openItem.getBoundingClientRect();
-    const newTop = rect.bottom + 12;
-    if (newTop < 0 || newTop + 60 > window.innerHeight) {
-        btn.style.top = '';
-        btn.style.bottom = '90px';
-    } else {
-        btn.style.bottom = '';
-        btn.style.top = newTop + 'px';
-    }
+    // intentionally left as a no-op; FAQ accordion open/close no longer
+    // moves the WhatsApp button.
 }
 
 const REPORT_DATA = {
