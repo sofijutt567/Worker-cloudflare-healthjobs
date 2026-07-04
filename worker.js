@@ -447,7 +447,9 @@ const html = buildNotePage(note, noteId, verified);
                     status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" }
                 });
             } catch (e) {
-                return new Response(JSON.stringify({ reply: "Sorry, I could not get a response right now. Please try again in a moment." }), {
+                // TEMPORARY: surfacing e.message for diagnosis. Remove the
+                // "debug" field once the underlying issue is confirmed fixed.
+                return new Response(JSON.stringify({ reply: "Sorry, I could not get a response right now. Please try again in a moment.", debug: (e && e.message) || String(e) }), {
                     status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" }
                 });
             }
@@ -1086,12 +1088,7 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
 
 /* ── Related Questions (FAQ) Section ── */
 .faq-section{margin-top:14px;margin-bottom:6px;background:var(--bg-white);border-radius:12px;border:1px solid var(--border-color);padding:20px;box-shadow:0 2px 4px rgba(0,0,0,0.02);}
-.ai-ask-btn{display:inline-flex;align-items:center;gap:0;background:#ffffff;color:#111;border:1px solid var(--border-color);border-radius:999px;padding:9px;font-weight:600;font-size:13px;cursor:pointer;margin-top:14px;box-shadow:0 1px 3px rgba(0,0,0,0.06);transition:box-shadow .15s ease,transform .15s ease,padding .35s ease;}
-.ai-ask-btn:hover{box-shadow:0 2px 8px rgba(0,0,0,0.1);transform:translateY(-1px);}
-.ai-ask-btn svg{width:16px;height:16px;flex-shrink:0;}
-.ai-ask-btn .ai-ask-label{max-width:0;overflow:hidden;white-space:nowrap;opacity:0;margin-left:0;transition:max-width .4s ease,opacity .3s ease,margin-left .4s ease;}
-.ai-ask-btn.pulse{padding:9px 15px;}
-.ai-ask-btn.pulse .ai-ask-label{max-width:160px;opacity:1;margin-left:7px;}
+
 .ai-chat-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9998;display:none;}
 .ai-chat-overlay.open{display:block;}
 .ai-chat-modal{position:fixed;inset:0;background:#fff;z-index:9999;display:none;flex-direction:column;}
@@ -1100,7 +1097,7 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
     .ai-chat-modal{top:50%;left:50%;transform:translate(-50%,-50%);inset:auto;width:min(640px,92vw);height:min(760px,88vh);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.25);overflow:hidden;}
 }
 .ai-chat-header{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border-color);flex-shrink:0;}
-.ai-chat-header > svg{width:20px;height:20px;flex-shrink:0;color:var(--primary-blue);}
+.ai-chat-header > .ai-chat-logo{width:26px;height:26px;object-fit:contain;flex-shrink:0;border-radius:6px;}
 .ai-chat-header .ai-chat-title{font-weight:700;font-size:15px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .ai-chat-close{background:none;border:none;cursor:pointer;padding:6px;color:#555;flex-shrink:0;}
 .ai-chat-close svg{width:22px;height:22px;}
@@ -1357,11 +1354,6 @@ ${city ? `
 <\/script><script src="https://www.highperformanceformat.com/333dc5bfbee4b34aa13ee95636901b9c/invoke.js"><\/script></div>
 
 <div class="sidebar-col">
-<!-- ── Ask AI Button ──────────────────────────────────────────────────── -->
-<button class="ai-ask-btn" id="ai-ask-btn" onclick="openAiChat()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg>
-    <span class="ai-ask-label">Ask AI</span>
-</button>
 <!-- ── Frequently Asked Questions Section ─────────────────────────────── -->
 <div class="faq-section" id="faq-section">
     <div class="faq-heading">
@@ -1381,8 +1373,8 @@ ${city ? `
 <div class="ai-chat-overlay" id="ai-chat-overlay" onclick="closeAiChat()"></div>
 <div class="ai-chat-modal" id="ai-chat-modal">
     <div class="ai-chat-header">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg>
-        <div class="ai-chat-title" id="ai-chat-title">Ask AI about this job</div>
+        <img src="https://healthjobportal.com/images/logo.png" alt="Health Jobs Portal" class="ai-chat-logo" onerror="this.style.display='none'">
+        <div class="ai-chat-title" id="ai-chat-title">AI Assistant</div>
         <button class="ai-chat-close" onclick="closeAiChat()" aria-label="Close">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
         </button>
@@ -2066,25 +2058,12 @@ async function faqAskChat(prompt, targetUrl) {
 window._aiChatHistory = [];
 window._aiChatBusy = false;
 
-(function(){
-    var btn = document.getElementById('ai-ask-btn');
-    if (!btn) return;
-    function pulseOnce() {
-        if (btn.classList.contains('pulse')) return;
-        btn.classList.add('pulse');
-        setTimeout(function(){ btn.classList.remove('pulse'); }, 2200);
-    }
-    setTimeout(pulseOnce, 1800);
-    setInterval(pulseOnce, 6000);
-})();
-
 function openAiChat() {
     document.getElementById('ai-chat-overlay').classList.add('open');
     document.getElementById('ai-chat-modal').classList.add('open');
     document.body.style.overflow = 'hidden';
-    var titleEl = document.getElementById('ai-chat-title');
-    if (titleEl) titleEl.textContent = window._faqPostTitle || 'Ask AI about this job';
-    if (!window._aiChatHistory.length) {
+    var msgBox = document.getElementById('ai-chat-messages');
+    if (msgBox && !msgBox.children.length && !window._aiChatHistory.length) {
         aiChatAppendMessage('bot', 'Assalam-o-Alaikum! Ask me anything about this job post — eligibility, how to apply, last date, salary, or any other detail mentioned in the post.');
     }
     var input = document.getElementById('ai-chat-input');
@@ -2383,6 +2362,13 @@ async function submitReport(){
   setTimeout(pcBannerStop, 300);
 })();
 <\/script>
+<!-- Ask AI Floating Button -->
+<div id="ai-float-btn" onclick="openAiChat()" style="position:fixed;bottom:160px;right:16px;z-index:9997;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;animation:waBounce 2s ease-in-out infinite;">
+  <div style="background:linear-gradient(135deg,#0a66c2,#00c6ff);width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(10,102,194,0.5);">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg>
+  </div>
+  <div style="background:#0a66c2;color:white;font-size:9px;font-weight:800;padding:3px 8px;border-radius:10px;white-space:nowrap;box-shadow:0 2px 8px rgba(10,102,194,0.4);">Ask AI<br>about this job</div>
+</div>
 <!-- WhatsApp Channel Float Button -->
 <div id="wa-channel-btn" onclick="window.open('https://whatsapp.com/channel/0029VbCe3Mf2kNFroj9qx223','_blank')" style="position:fixed;bottom:90px;right:16px;z-index:9998;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;animation:waBounce 2s ease-in-out infinite;">
   <div style="background:#25D366;width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(37,211,102,0.5);">
