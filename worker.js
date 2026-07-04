@@ -428,7 +428,7 @@ const html = buildNotePage(note, noteId, verified);
                     "5. Do not use markdown formatting, headings, or bullet symbols, reply in plain conversational sentences."
                 ].join(NL);
 
-                const aiResult = await env.AI.run("@cf/meta/llama-3.1-8b-instruct", {
+                const aiResult = await env.AI.run("@cf/zai-org/glm-4.7-flash", {
                     messages: [
                         { role: "system", content: systemPrompt },
                         { role: "user", content: String(prompt) }
@@ -447,9 +447,7 @@ const html = buildNotePage(note, noteId, verified);
                     status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" }
                 });
             } catch (e) {
-                // TEMPORARY: surfacing e.message for diagnosis. Remove the
-                // "debug" field once the underlying issue is confirmed fixed.
-                return new Response(JSON.stringify({ reply: "Sorry, I could not get a response right now. Please try again in a moment.", debug: (e && e.message) || String(e) }), {
+                return new Response(JSON.stringify({ reply: "Sorry, I could not get a response right now. Please try again in a moment." }), {
                     status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" }
                 });
             }
@@ -1094,7 +1092,8 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
 .ai-chat-modal{position:fixed;inset:0;background:#fff;z-index:9999;display:none;flex-direction:column;}
 .ai-chat-modal.open{display:flex;}
 @media (min-width:769px){
-    .ai-chat-modal{top:50%;left:50%;transform:translate(-50%,-50%);inset:auto;width:min(640px,92vw);height:min(760px,88vh);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.25);overflow:hidden;}
+    .ai-chat-overlay{background:rgba(15,23,42,0.12);}
+    .ai-chat-modal{top:auto;left:auto;inset:auto;right:24px;bottom:24px;width:380px;height:min(600px,80vh);border-radius:16px;box-shadow:0 16px 48px rgba(15,23,42,0.18);border:1px solid #e2e8f0;overflow:hidden;}
 }
 .ai-chat-header{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border-color);flex-shrink:0;}
 .ai-chat-header > .ai-chat-logo{width:26px;height:26px;object-fit:contain;flex-shrink:0;border-radius:6px;}
@@ -1172,15 +1171,9 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
 .sidebar-col{width:100%;margin-top:0;box-sizing:border-box;}
 .page-layout{display:block;width:100%;}
 .site-footer{background:#fff;padding:24px 16px 40px;border-top:1px solid #cbd5e1;text-align:center;width:100%;}
-.pc-banner{display:none;}
 /* max-width:700px applied directly to main */
 @media(min-width:1024px){
   .page-layout{display:block;width:100%;position:relative;}
-  .pc-banner{display:flex;align-items:flex-start;justify-content:center;width:160px;position:fixed;top:75px;z-index:50;}
-  .pc-banner-left{left:max(10px, calc(50% - 350px - 160px - 16px));}
-  .pc-banner-right{left:min(calc(100% - 170px), calc(50% + 350px + 16px));}
-  .pc-banner.pc-banner-stop{position:absolute;top:var(--pc-stop-top);}
-  .pc-banner-inner{width:160px;min-height:600px;overflow:hidden;border-radius:10px;background:#f1f5f9;}
 }
 </style>
 </head>
@@ -1194,8 +1187,6 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
 </header>
 
 <div class="page-layout">
-<div class="pc-banner pc-banner-left"><div class="pc-banner-inner"><script>atOptions={'key':'12e567a592eb923f9cea953d8fda0594','format':'iframe','height':600,'width':160,'params':{}};</script><script src="https://www.highperformanceformat.com/12e567a592eb923f9cea953d8fda0594/invoke.js"></script></div></div>
-<div class="pc-banner pc-banner-right"><div class="pc-banner-inner"><script>atOptions={'key':'12e567a592eb923f9cea953d8fda0594','format':'iframe','height':600,'width':160,'params':{}};</script><script src="https://www.highperformanceformat.com/12e567a592eb923f9cea953d8fda0594/invoke.js"></script></div></div>
 <main>
 <div class="details-card">
     <div class="user-section">
@@ -1256,7 +1247,12 @@ ${expiresAt ? `<div id="expiry-badge-wrap"></div>` : ""}
         </tbody>
     </table>
 
-<div class="desc-title">Detail Description:</div>
+<div class="desc-title" style="display:flex;align-items:center;gap:8px;">
+  <span>Detail Description:</span>
+  <span onclick="openAiChat()" title="Ask AI about this job" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#fff;border:1px solid #cbd5e1;cursor:pointer;flex-shrink:0;">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg>
+  </span>
+</div>
 <div class="job-desc">${desc}</div>
 
 <a href="https://whatsapp.com/channel/0029VbCe3Mf2kNFroj9qx223" target="_blank" rel="noopener" style="display:block;margin:14px 0;">
@@ -2040,7 +2036,7 @@ async function faqAskChat(prompt, targetUrl) {
         clearTimeout(timer);
         var data = await res.json().catch(function(){ return null; });
         if (!res.ok) {
-            throw new Error('Backend error ' + res.status + (data && data.debug ? (': ' + data.debug) : (data && data.reply ? (': ' + data.reply) : '')));
+            throw new Error('Backend error ' + res.status + (data && data.reply ? (': ' + data.reply) : ''));
         }
         var reply = (data && (data.reply || data.text || data.content || data.answer || data.result || data.output || data.message)) || '';
         if (reply && typeof reply === 'object') reply = JSON.stringify(reply);
@@ -2132,11 +2128,7 @@ async function aiChatSend() {
         window._aiChatHistory.push({ role: 'bot', text: reply });
     } catch (e) {
         if (loadingEl) loadingEl.remove();
-        // TEMPORARY: showing the real error so the exact cause is visible
-        // directly in the chat. Revert to the generic message once the
-        // /api/ai-chat 500 error is confirmed fixed.
-        aiChatAppendMessage('bot', 'DEBUG ERROR: ' + ((e && e.message) || String(e)));
-        window._aiChatHistory.push({ role: 'bot', text: 'DEBUG ERROR: ' + ((e && e.message) || String(e)) });
+        aiChatAppendMessage('bot', 'Sorry, I could not get a response right now. Please try again in a moment.');
     } finally {
         window._aiChatBusy = false;
         if (sendBtn) sendBtn.disabled = false;
@@ -2342,61 +2334,6 @@ async function submitReport(){
         btn.disabled  = false;
     }
 }
-<\/script>
-<script>
-(function(){
-  function pcBannerStop(){
-    var footer = document.querySelector('.site-footer');
-    var layout = document.querySelector('.page-layout');
-    var banners = document.querySelectorAll('.pc-banner');
-    if (!footer || !layout || !banners.length) return;
-    var layoutRect = layout.getBoundingClientRect();
-    var footerRect = footer.getBoundingClientRect();
-    var bannerH = 600;
-    var topOffset = 75;
-    var hitsFooter = footerRect.top <= topOffset + bannerH;
-    banners.forEach(function(b){
-      if (hitsFooter) {
-        var stopTop = (footerRect.top - layoutRect.top) - bannerH - 10;
-        b.style.setProperty('--pc-stop-top', stopTop + 'px');
-        b.classList.add('pc-banner-stop');
-      } else {
-        b.classList.remove('pc-banner-stop');
-      }
-    });
-  }
-  window.addEventListener('scroll', pcBannerStop, { passive: true });
-  window.addEventListener('resize', pcBannerStop);
-  document.addEventListener('DOMContentLoaded', pcBannerStop);
-  setTimeout(pcBannerStop, 300);
-})();
-<\/script>
-<!-- Ask AI Floating Button -->
-<div id="ai-float-btn" onclick="openAiChat()" style="position:fixed;bottom:240px;right:16px;z-index:9997;cursor:pointer;display:flex;align-items:center;justify-content:flex-end;">
-  <div id="ai-float-label" style="max-width:0;overflow:hidden;white-space:nowrap;opacity:0;background:#64748b;color:#fff;font-size:11px;font-weight:600;padding:0;border-radius:16px;margin-right:0;transition:max-width .4s ease,opacity .3s ease,padding .4s ease,margin-right .4s ease;height:30px;display:flex;align-items:center;box-shadow:0 2px 6px rgba(0,0,0,0.15);">Ask AI</div>
-  <div style="background:#94a3b8;width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.2);flex-shrink:0;">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg>
-  </div>
-</div>
-<script>
-(function(){
-    var label = document.getElementById('ai-float-label');
-    if (!label) return;
-    function peekOnce() {
-        label.style.maxWidth = '140px';
-        label.style.opacity = '1';
-        label.style.padding = '0 14px';
-        label.style.marginRight = '8px';
-        setTimeout(function(){
-            label.style.maxWidth = '0';
-            label.style.opacity = '0';
-            label.style.padding = '0';
-            label.style.marginRight = '0';
-        }, 2500);
-    }
-    setTimeout(peekOnce, 2000);
-    setInterval(peekOnce, 7000);
-})();
 <\/script>
 <!-- WhatsApp Channel Float Button -->
 <div id="wa-channel-btn" onclick="window.open('https://whatsapp.com/channel/0029VbCe3Mf2kNFroj9qx223','_blank')" style="position:fixed;bottom:90px;right:16px;z-index:9998;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;animation:waBounce 2s ease-in-out infinite;">
@@ -2674,17 +2611,11 @@ main{width:100%;padding:0 10px;}
 .sidebar-col{width:100%;margin-top:0;}
 .page-layout{display:block;width:100%;}
 .site-footer{background:#fff;padding:24px 16px 40px;border-top:1px solid #cbd5e1;text-align:center;width:100%;}
-.pc-banner{display:none;}
 @media(min-width:701px){
   main{display:block;margin:0 auto;max-width:700px;padding:0;}
 }
 @media(min-width:1024px){
   .page-layout{display:block;width:100%;position:relative;}
-  .pc-banner{display:flex;align-items:flex-start;justify-content:center;width:160px;position:fixed;top:75px;z-index:50;}
-  .pc-banner-left{left:max(10px, calc(50% - 350px - 160px - 16px));}
-  .pc-banner-right{left:min(calc(100% - 170px), calc(50% + 350px + 16px));}
-  .pc-banner.pc-banner-stop{position:absolute;top:var(--pc-stop-top);}
-  .pc-banner-inner{width:160px;min-height:600px;overflow:hidden;border-radius:10px;background:#f1f5f9;}
 }
 </style>
 </head>
@@ -2698,8 +2629,6 @@ main{width:100%;padding:0 10px;}
 </header>
 
 <div class="page-layout">
-<div class="pc-banner pc-banner-left"><div class="pc-banner-inner"><script>atOptions={'key':'12e567a592eb923f9cea953d8fda0594','format':'iframe','height':600,'width':160,'params':{}};</script><script src="https://www.highperformanceformat.com/12e567a592eb923f9cea953d8fda0594/invoke.js"></script></div></div>
-<div class="pc-banner pc-banner-right"><div class="pc-banner-inner"><script>atOptions={'key':'12e567a592eb923f9cea953d8fda0594','format':'iframe','height':600,'width':160,'params':{}};</script><script src="https://www.highperformanceformat.com/12e567a592eb923f9cea953d8fda0594/invoke.js"></script></div></div>
 <main>
 <div class="details-card">
 
@@ -3384,34 +3313,6 @@ function sharePost(){
     else { navigator.clipboard.writeText('${e(canonicalUrl)}'); alert('Link copied!'); }
 }
 <\/script>
-<script>
-(function(){
-  function pcBannerStop(){
-    var footer = document.querySelector('.site-footer');
-    var layout = document.querySelector('.page-layout');
-    var banners = document.querySelectorAll('.pc-banner');
-    if (!footer || !layout || !banners.length) return;
-    var layoutRect = layout.getBoundingClientRect();
-    var footerRect = footer.getBoundingClientRect();
-    var bannerH = 600;
-    var topOffset = 75;
-    var hitsFooter = footerRect.top <= topOffset + bannerH;
-    banners.forEach(function(b){
-      if (hitsFooter) {
-        var stopTop = (footerRect.top - layoutRect.top) - bannerH - 10;
-        b.style.setProperty('--pc-stop-top', stopTop + 'px');
-        b.classList.add('pc-banner-stop');
-      } else {
-        b.classList.remove('pc-banner-stop');
-      }
-    });
-  }
-  window.addEventListener('scroll', pcBannerStop, { passive: true });
-  window.addEventListener('resize', pcBannerStop);
-  document.addEventListener('DOMContentLoaded', pcBannerStop);
-  setTimeout(pcBannerStop, 300);
-})();
-<\/script>
 <!-- WhatsApp Channel Float Button -->
 <div id="wa-channel-btn" onclick="window.open('https://whatsapp.com/channel/0029VbCe3Mf2kNFroj9qx223','_blank')" style="position:fixed;bottom:90px;right:16px;z-index:9998;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;animation:waBounce 2s ease-in-out infinite;">
   <div style="background:#25D366;width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(37,211,102,0.5);">
@@ -3592,14 +3493,8 @@ main{width:100%;padding:16px 12px;}
 @media(min-width:701px){
   main{display:block;margin:0 auto;max-width:700px;padding:0 10px;}
 }
-.pc-banner{display:none;}
 @media(min-width:1024px){
   .page-layout{position:relative;}
-  .pc-banner{display:flex;align-items:flex-start;justify-content:center;width:160px;position:fixed;top:75px;z-index:50;}
-  .pc-banner-left{left:max(10px, calc(50% - 350px - 160px - 16px));}
-  .pc-banner-right{left:min(calc(100% - 170px), calc(50% + 350px + 16px));}
-  .pc-banner.pc-banner-stop{position:absolute;top:var(--pc-stop-top);}
-  .pc-banner-inner{width:160px;min-height:600px;overflow:hidden;border-radius:10px;background:#f1f5f9;}
 }
 </style>
 </head>
@@ -3612,8 +3507,6 @@ main{width:100%;padding:16px 12px;}
 </header>
 
 <div class="page-layout">
-<div class="pc-banner pc-banner-left"><div class="pc-banner-inner"><script>atOptions={'key':'12e567a592eb923f9cea953d8fda0594','format':'iframe','height':600,'width':160,'params':{}};</script><script src="https://www.highperformanceformat.com/12e567a592eb923f9cea953d8fda0594/invoke.js"></script></div></div>
-<div class="pc-banner pc-banner-right"><div class="pc-banner-inner"><script>atOptions={'key':'12e567a592eb923f9cea953d8fda0594','format':'iframe','height':600,'width':160,'params':{}};</script><script src="https://www.highperformanceformat.com/12e567a592eb923f9cea953d8fda0594/invoke.js"></script></div></div>
 <main>
 <div class="card">
     <div class="author-row">
@@ -3781,34 +3674,6 @@ async function pdfDownload() {
         btn.disabled = false;
     }
 }
-<\/script>
-<script>
-(function(){
-  function pcBannerStop(){
-    var footer = document.querySelector('.site-footer');
-    var layout = document.querySelector('.page-layout');
-    var banners = document.querySelectorAll('.pc-banner');
-    if (!footer || !layout || !banners.length) return;
-    var layoutRect = layout.getBoundingClientRect();
-    var footerRect = footer.getBoundingClientRect();
-    var bannerH = 600;
-    var topOffset = 75;
-    var hitsFooter = footerRect.top <= topOffset + bannerH;
-    banners.forEach(function(b){
-      if (hitsFooter) {
-        var stopTop = (footerRect.top - layoutRect.top) - bannerH - 10;
-        b.style.setProperty('--pc-stop-top', stopTop + 'px');
-        b.classList.add('pc-banner-stop');
-      } else {
-        b.classList.remove('pc-banner-stop');
-      }
-    });
-  }
-  window.addEventListener('scroll', pcBannerStop, { passive: true });
-  window.addEventListener('resize', pcBannerStop);
-  document.addEventListener('DOMContentLoaded', pcBannerStop);
-  setTimeout(pcBannerStop, 300);
-})();
 <\/script>
 <!-- WhatsApp Channel Float Button -->
 <div id="wa-channel-btn" onclick="window.open('https://whatsapp.com/channel/0029VbCe3Mf2kNFroj9qx223','_blank')" style="position:fixed;bottom:90px;right:16px;z-index:9998;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;animation:waBounce 2s ease-in-out infinite;">
