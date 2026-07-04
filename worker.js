@@ -2363,12 +2363,32 @@ async function submitReport(){
 })();
 <\/script>
 <!-- Ask AI Floating Button -->
-<div id="ai-float-btn" onclick="openAiChat()" style="position:fixed;bottom:160px;right:16px;z-index:9997;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;animation:waBounce 2s ease-in-out infinite;">
-  <div style="background:linear-gradient(135deg,#0a66c2,#00c6ff);width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(10,102,194,0.5);">
+<div id="ai-float-btn" onclick="openAiChat()" style="position:fixed;bottom:160px;right:16px;z-index:9997;cursor:pointer;display:flex;align-items:center;justify-content:flex-end;animation:waBounce 2s ease-in-out infinite;">
+  <div id="ai-float-label" style="max-width:0;overflow:hidden;white-space:nowrap;opacity:0;background:#0a66c2;color:#fff;font-size:12px;font-weight:700;padding:0;border-radius:20px;margin-right:0;transition:max-width .4s ease,opacity .3s ease,padding .4s ease,margin-right .4s ease;height:38px;display:flex;align-items:center;box-shadow:0 2px 8px rgba(10,102,194,0.4);">Ask AI</div>
+  <div style="background:linear-gradient(135deg,#0a66c2,#00c6ff);width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(10,102,194,0.5);flex-shrink:0;">
     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg>
   </div>
-  <div style="background:#0a66c2;color:white;font-size:9px;font-weight:800;padding:3px 8px;border-radius:10px;white-space:nowrap;box-shadow:0 2px 8px rgba(10,102,194,0.4);">Ask AI<br>about this job</div>
 </div>
+<script>
+(function(){
+    var label = document.getElementById('ai-float-label');
+    if (!label) return;
+    function peekOnce() {
+        label.style.maxWidth = '140px';
+        label.style.opacity = '1';
+        label.style.padding = '0 14px';
+        label.style.marginRight = '8px';
+        setTimeout(function(){
+            label.style.maxWidth = '0';
+            label.style.opacity = '0';
+            label.style.padding = '0';
+            label.style.marginRight = '0';
+        }, 2500);
+    }
+    setTimeout(peekOnce, 2000);
+    setInterval(peekOnce, 7000);
+})();
+<\/script>
 <!-- WhatsApp Channel Float Button -->
 <div id="wa-channel-btn" onclick="window.open('https://whatsapp.com/channel/0029VbCe3Mf2kNFroj9qx223','_blank')" style="position:fixed;bottom:90px;right:16px;z-index:9998;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;animation:waBounce 2s ease-in-out infinite;">
   <div style="background:#25D366;width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(37,211,102,0.5);">
