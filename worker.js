@@ -989,6 +989,29 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
 
 /* ── Related Questions (FAQ) Section ── */
 .faq-section{margin-top:14px;margin-bottom:6px;background:var(--bg-white);border-radius:12px;border:1px solid var(--border-color);padding:20px;box-shadow:0 2px 4px rgba(0,0,0,0.02);}
+.ai-ask-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:#ffffff;color:#111;border:1px solid var(--border-color);border-radius:10px;padding:11px 16px;font-weight:600;font-size:14px;cursor:pointer;margin-top:14px;box-shadow:0 1px 3px rgba(0,0,0,0.04);transition:box-shadow .15s ease,transform .15s ease;}
+.ai-ask-btn:hover{box-shadow:0 2px 8px rgba(0,0,0,0.08);transform:translateY(-1px);}
+.ai-ask-btn svg{width:18px;height:18px;flex-shrink:0;}
+.ai-chat-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9998;display:none;}
+.ai-chat-overlay.open{display:block;}
+.ai-chat-modal{position:fixed;inset:0;background:#fff;z-index:9999;display:none;flex-direction:column;}
+.ai-chat-modal.open{display:flex;}
+@media (min-width:769px){
+    .ai-chat-modal{top:50%;left:50%;transform:translate(-50%,-50%);inset:auto;width:min(640px,92vw);height:min(760px,88vh);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.25);overflow:hidden;}
+}
+.ai-chat-header{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border-color);flex-shrink:0;}
+.ai-chat-header .ai-chat-title{font-weight:700;font-size:15px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ai-chat-close{background:none;border:none;cursor:pointer;padding:6px;color:#555;flex-shrink:0;}
+.ai-chat-close svg{width:22px;height:22px;}
+.ai-chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;background:#fafafa;}
+.ai-chat-msg{max-width:82%;padding:10px 14px;border-radius:14px;font-size:14px;line-height:1.5;white-space:pre-wrap;word-wrap:break-word;}
+.ai-chat-msg.user{align-self:flex-end;background:var(--primary-blue);color:#fff;border-bottom-right-radius:4px;}
+.ai-chat-msg.bot{align-self:flex-start;background:#fff;border:1px solid var(--border-color);color:#222;border-bottom-left-radius:4px;}
+.ai-chat-msg.bot.loading{color:#888;font-style:italic;}
+.ai-chat-inputbar{display:flex;gap:8px;padding:12px;border-top:1px solid var(--border-color);flex-shrink:0;background:#fff;}
+.ai-chat-inputbar textarea{flex:1;resize:none;border:1px solid var(--border-color);border-radius:10px;padding:10px 12px;font-size:14px;font-family:inherit;max-height:100px;}
+.ai-chat-inputbar button{background:var(--primary-blue);color:#fff;border:none;border-radius:10px;padding:0 18px;font-weight:600;cursor:pointer;font-size:14px;}
+.ai-chat-inputbar button:disabled{opacity:.5;cursor:not-allowed;}
 .faq-heading{font-size:15px;font-weight:800;color:var(--text-main);margin-bottom:12px;display:flex;align-items:center;gap:7px;}
 .faq-heading svg{width:18px;height:18px;fill:var(--primary-blue);}
 .faq-list{display:flex;flex-direction:column;gap:8px;}
@@ -1233,6 +1256,11 @@ ${city ? `
 <\/script><script src="https://www.highperformanceformat.com/333dc5bfbee4b34aa13ee95636901b9c/invoke.js"><\/script></div>
 
 <div class="sidebar-col">
+<!-- ── Ask AI Button ──────────────────────────────────────────────────── -->
+<button class="ai-ask-btn" id="ai-ask-btn" onclick="openAiChat()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg>
+    <span>Ask AI about this job</span>
+</button>
 <!-- ── Frequently Asked Questions Section ─────────────────────────────── -->
 <div class="faq-section" id="faq-section">
     <div class="faq-heading">
@@ -1245,6 +1273,23 @@ ${city ? `
         <div class="faq-skeleton"></div>
         <div class="faq-skeleton"></div>
         <div class="faq-skeleton"></div>
+    </div>
+</div>
+
+<!-- ── Ask AI full-screen chat modal ────────────────────────────────────── -->
+<div class="ai-chat-overlay" id="ai-chat-overlay" onclick="closeAiChat()"></div>
+<div class="ai-chat-modal" id="ai-chat-modal">
+    <div class="ai-chat-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg>
+        <div class="ai-chat-title" id="ai-chat-title">Ask AI about this job</div>
+        <button class="ai-chat-close" onclick="closeAiChat()" aria-label="Close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+    </div>
+    <div class="ai-chat-messages" id="ai-chat-messages"></div>
+    <div class="ai-chat-inputbar">
+        <textarea id="ai-chat-input" rows="1" placeholder="Ask a question about this job post..." onkeydown="aiChatHandleKey(event)"></textarea>
+        <button id="ai-chat-send" onclick="aiChatSend()">Send</button>
     </div>
 </div>
 <!-- ── Related Jobs Section ──────────────────────────────────────────── -->
@@ -1867,7 +1912,7 @@ function faqParseQuestionsReply(text) {
         // Strip markdown code fences WITHOUT regex backslashes (avoids
         // backslash-loss when this script is embedded in nested template
         // literals during deployment).
-        var fence = String.fromCharCode(96, 96, 96); // ``` without literal backticks in source
+        var fence = String.fromCharCode(96, 96, 96); // three backtick chars, built via code so none appear literally in this source
         if (t.slice(0, 7).toLowerCase() === fence + 'json') t = t.slice(7);
         else if (t.slice(0, 3) === fence) t = t.slice(3);
         if (t.slice(-3) === fence) t = t.slice(0, -3);
@@ -1882,10 +1927,8 @@ function faqParseQuestionsReply(text) {
 
         var arr = JSON.parse(jsonStr);
         var out = Array.isArray(arr) ? arr.filter(function(q){ return typeof q === 'string' && q.trim(); }).map(function(q){ return q.trim(); }) : [];
-        console.log('DEBUG parse: arr=', JSON.stringify(arr), '| out.length=', out.length, '| out=', JSON.stringify(out));
         return out;
     } catch(e) {
-        console.log('faqParseQuestionsReply: parse failed:', e.message, '| raw text was:', text);
         return [];
     }
 }
@@ -1903,20 +1946,97 @@ async function faqAskChat(prompt) {
         clearTimeout(timer);
         var data = await res.json().catch(function(){ return null; });
         if (!res.ok) {
-            console.log('faqAskChat: backend returned', res.status, data);
             throw new Error('Backend error ' + res.status + (data && data.reply ? (': ' + data.reply) : ''));
         }
         var reply = (data && (data.reply || data.text || data.content || data.answer || data.result || data.output || data.message)) || '';
         if (reply && typeof reply === 'object') reply = JSON.stringify(reply);
         if (!reply || !String(reply).trim()) {
-            console.log('faqAskChat: empty reply body', data);
             throw new Error('Empty reply from backend');
         }
         return String(reply);
     } catch(e1) {
         clearTimeout(timer);
-        console.log('faqAskChat failed:', e1 && e1.message);
         throw e1;
+    }
+}
+
+// ── Ask AI full-screen chat ─────────────────────────────────────────────
+window._aiChatHistory = [];
+window._aiChatBusy = false;
+
+function openAiChat() {
+    document.getElementById('ai-chat-overlay').classList.add('open');
+    document.getElementById('ai-chat-modal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    var titleEl = document.getElementById('ai-chat-title');
+    if (titleEl) titleEl.textContent = window._faqPostTitle || 'Ask AI about this job';
+    if (!window._aiChatHistory.length) {
+        aiChatAppendMessage('bot', 'Assalam-o-Alaikum! Ask me anything about this job post — eligibility, how to apply, last date, salary, or any other detail mentioned in the post.');
+    }
+    var input = document.getElementById('ai-chat-input');
+    if (input) setTimeout(function(){ input.focus(); }, 150);
+}
+
+function closeAiChat() {
+    document.getElementById('ai-chat-overlay').classList.remove('open');
+    document.getElementById('ai-chat-modal').classList.remove('open');
+    document.body.style.overflow = '';
+}
+
+function aiChatHandleKey(ev) {
+    if (ev.key === 'Enter' && !ev.shiftKey) {
+        ev.preventDefault();
+        aiChatSend();
+    }
+}
+
+function aiChatAppendMessage(role, text, isLoading) {
+    var box = document.getElementById('ai-chat-messages');
+    if (!box) return null;
+    var div = document.createElement('div');
+    div.className = 'ai-chat-msg ' + (role === 'user' ? 'user' : 'bot') + (isLoading ? ' loading' : '');
+    div.textContent = text;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+    return div;
+}
+
+async function aiChatSend() {
+    if (window._aiChatBusy) return;
+    var input = document.getElementById('ai-chat-input');
+    var question = (input.value || '').trim();
+    if (!question) return;
+    input.value = '';
+    window._aiChatBusy = true;
+    var sendBtn = document.getElementById('ai-chat-send');
+    if (sendBtn) sendBtn.disabled = true;
+
+    aiChatAppendMessage('user', question);
+    window._aiChatHistory.push({ role: 'user', text: question });
+    var loadingEl = aiChatAppendMessage('bot', 'Typing...', true);
+
+    var historyText = window._aiChatHistory.slice(-8).map(function(m){
+        return (m.role === 'user' ? 'Visitor' : 'Assistant') + ': ' + m.text;
+    }).join('\n');
+
+    var prompt = faqBuildContext() +
+        'You are answering questions ONLY about the specific job post above. ' +
+        'Do not answer questions unrelated to this job post — politely say you can only help with questions about this job post. ' +
+        'Keep answers short, direct, and based only on the information given above.\n\n' +
+        'Conversation so far:\n' + historyText + '\n\n' +
+        'Reply with only your answer to the latest visitor message, no extra formatting.';
+
+    try {
+        var reply = await faqAskChat(prompt);
+        if (loadingEl) loadingEl.remove();
+        aiChatAppendMessage('bot', reply);
+        window._aiChatHistory.push({ role: 'bot', text: reply });
+    } catch (e) {
+        if (loadingEl) loadingEl.remove();
+        aiChatAppendMessage('bot', 'Sorry, I could not get a response right now. Please try again in a moment.');
+    } finally {
+        window._aiChatBusy = false;
+        if (sendBtn) sendBtn.disabled = false;
     }
 }
 
@@ -1929,9 +2049,7 @@ async function loadFaqQuestions(attempt) {
             'Generate exactly 5 short FAQ questions a visitor might ask about this job post. ' +
             'Return ONLY a JSON array of 5 question strings, no markdown, no extra text.';
         var reply = await faqAskChat(prompt);
-        console.log('RAW FAQ REPLY:', reply);
         window._faqQuestions = faqParseQuestionsReply(reply).slice(0, 5);
-        console.log('DEBUG loadFaqQuestions: attempt=', attempt, '| window._faqQuestions=', JSON.stringify(window._faqQuestions), '| length=', window._faqQuestions.length);
 
         if (!window._faqQuestions.length) {
             throw new Error('Empty FAQ list from API');
