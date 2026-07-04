@@ -1037,6 +1037,8 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
 .hl-label{font-size:12px;text-transform:uppercase;font-weight:700;color:var(--text-secondary);letter-spacing:0.5px;}
 .hl-value{font-size:15px;font-weight:600;color:var(--text-main);}
 .desc-title{font-size:16px;font-weight:700;color:var(--text-main);margin-bottom:10px;}
+.ai-spark-icon{animation:aiSpin 3s linear infinite;transform-origin:center;}
+@keyframes aiSpin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
 .job-desc{font-size:15px;line-height:1.7;color:#333;margin-bottom:30px;word-wrap:break-word;overflow-wrap:break-word;}
 .media-container{display:flex;flex-direction:column;gap:15px;margin-bottom:20px;}
 .media-item img{width:100%;border-radius:8px;border:1px solid var(--border-color);object-fit:cover;max-height:400px;}
@@ -1096,15 +1098,22 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
     .ai-chat-modal{top:auto;left:auto;inset:auto;right:24px;bottom:24px;width:380px;height:min(600px,80vh);border-radius:16px;box-shadow:0 16px 48px rgba(15,23,42,0.18);border:1px solid #e2e8f0;overflow:hidden;}
 }
 .ai-chat-header{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border-color);flex-shrink:0;}
-.ai-chat-header > .ai-chat-logo{width:26px;height:26px;object-fit:contain;flex-shrink:0;border-radius:6px;}
+.ai-chat-header > .ai-chat-logo{height:32px;width:auto;object-fit:contain;flex-shrink:0;}
 .ai-chat-header .ai-chat-title{font-weight:700;font-size:15px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .ai-chat-close{background:none;border:none;cursor:pointer;padding:6px;color:#555;flex-shrink:0;}
 .ai-chat-close svg{width:22px;height:22px;}
 .ai-chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;background:#fafafa;}
-.ai-chat-msg{max-width:82%;padding:10px 14px;border-radius:14px;font-size:14px;line-height:1.5;white-space:pre-wrap;word-wrap:break-word;}
-.ai-chat-msg.user{align-self:flex-end;background:var(--primary-blue);color:#fff;border-bottom-right-radius:4px;}
-.ai-chat-msg.bot{align-self:flex-start;background:#fff;border:1px solid var(--border-color);color:#222;border-bottom-left-radius:4px;}
-.ai-chat-msg.bot.loading{color:#888;font-style:italic;}
+.ai-chat-msg{max-width:82%;padding:11px 15px;border-radius:16px;font-size:14px;line-height:1.55;word-wrap:break-word;}
+.ai-chat-msg.user{align-self:flex-end;background:var(--primary-blue);color:#fff;border-bottom-right-radius:5px;}
+.ai-chat-msg.bot{align-self:flex-start;background:#fff;border:1px solid #e5e9f0;color:#1e293b;border-bottom-left-radius:5px;box-shadow:0 1px 2px rgba(0,0,0,0.04);}
+.ai-chat-msg.bot.loading{color:#94a3b8;font-style:italic;}
+.ai-chat-msg p{margin:0 0 8px;}
+.ai-chat-msg p:last-child{margin-bottom:0;}
+.ai-chat-msg ul,.ai-chat-msg ol{margin:6px 0 8px;padding-left:20px;}
+.ai-chat-msg li{margin-bottom:3px;}
+.ai-chat-msg h4{font-size:14.5px;font-weight:700;margin:4px 0 6px;}
+.ai-chat-msg strong{font-weight:700;}
+.ai-chat-apply-btn{display:inline-flex;align-items:center;gap:6px;margin-top:6px;padding:9px 16px;background:#16a34a;color:#fff !important;border-radius:20px;font-size:13px;font-weight:700;text-decoration:none;}
 .ai-chat-inputbar{display:flex;gap:8px;padding:12px;border-top:1px solid var(--border-color);flex-shrink:0;background:#fff;}
 .ai-chat-inputbar textarea{flex:1;resize:none;border:1px solid var(--border-color);border-radius:10px;padding:10px 12px;font-size:14px;font-family:inherit;max-height:100px;}
 .ai-chat-inputbar button{background:var(--primary-blue);color:#fff;border:none;border-radius:10px;padding:0 18px;font-weight:600;cursor:pointer;font-size:14px;}
@@ -1209,9 +1218,6 @@ ${expiresAt ? `<div id="expiry-badge-wrap"></div>` : ""}
 </div>
 <!-- End TrustBox widget --> 
 
-<div style="width:100%;text-align:center;overflow:hidden;margin:10px 0;">
-<script>atOptions={'key':'333dc5bfbee4b34aa13ee95636901b9c','format':'iframe','height':60,'width':468,'params':{}};
-<\/script><script src="https://www.highperformanceformat.com/333dc5bfbee4b34aa13ee95636901b9c/invoke.js"><\/script></div>
 
 <table class="job-details-table">
         <tbody>
@@ -1247,11 +1253,11 @@ ${expiresAt ? `<div id="expiry-badge-wrap"></div>` : ""}
         </tbody>
     </table>
 
-<div class="desc-title" style="display:flex;align-items:center;gap:8px;">
+<div class="desc-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
   <span>Detail Description:</span>
-  <span onclick="openAiChat()" title="Ask AI about this job" style="display:inline-flex;align-items:center;gap:3px;cursor:pointer;flex-shrink:0;">
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="#7c3aed"><path d="M12 2c.6 3.2 2.2 4.8 5.4 5.4-3.2.6-4.8 2.2-5.4 5.4-.6-3.2-2.2-4.8-5.4-5.4C9.8 6.8 11.4 5.2 12 2Zm7 9c.4 1.8 1.2 2.6 3 3-1.8.4-2.6 1.2-3 3-.4-1.8-1.2-2.6-3-3 1.8-.4 2.6-1.2 3-3Z"/></svg>
-    <span style="font-size:11px;font-weight:700;color:#7c3aed;">AI</span>
+  <span onclick="openAiChat()" title="Ask AI about this job" style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;flex-shrink:0;background:#2563eb;padding:5px 11px;border-radius:14px;box-shadow:0 2px 6px rgba(37,99,235,0.35);">
+    <svg class="ai-spark-icon" width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M12 2c.6 3.2 2.2 4.8 5.4 5.4-3.2.6-4.8 2.2-5.4 5.4-.6-3.2-2.2-4.8-5.4-5.4C9.8 6.8 11.4 5.2 12 2Zm7 9c.4 1.8 1.2 2.6 3 3-1.8.4-2.6 1.2-3 3-.4-1.8-1.2-2.6-3-3 1.8-.4 2.6-1.2 3-3Z"/></svg>
+    <span style="font-size:12px;font-weight:700;color:#fff;">AI</span>
   </span>
 </div>
 <div class="job-desc">${desc}</div>
@@ -1346,9 +1352,6 @@ ${city ? `
 
 </div>
 
-<div style="width:100%;text-align:center;overflow:hidden;margin:12px 0;">
-<script>atOptions={'key':'333dc5bfbee4b34aa13ee95636901b9c','format':'iframe','height':60,'width':468,'params':{}};
-<\/script><script src="https://www.highperformanceformat.com/333dc5bfbee4b34aa13ee95636901b9c/invoke.js"><\/script></div>
 
 <div class="sidebar-col">
 <!-- ── Frequently Asked Questions Section ─────────────────────────────── -->
@@ -1371,7 +1374,7 @@ ${city ? `
 <div class="ai-chat-modal" id="ai-chat-modal">
     <div class="ai-chat-header">
         <img src="https://healthjobportal.com/images/logo.png" alt="Health Jobs Portal" class="ai-chat-logo" onerror="this.style.display='none'">
-        <div class="ai-chat-title" id="ai-chat-title">AI Assistant</div>
+        <div class="ai-chat-title" id="ai-chat-title"></div>
         <button class="ai-chat-close" onclick="closeAiChat()" aria-label="Close">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
         </button>
@@ -1991,6 +1994,35 @@ window._aiChatApiUrl = '/api/ai-chat';
 window._faqPostTitle  = ${JSON.stringify(title)};
 window._faqPostDesc   = ${JSON.stringify(desc.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 500))};
 window._faqQuestions  = [];
+
+// Fuller context used ONLY by the "Ask AI about this job" widget, so it can
+// answer from the complete post details rather than a short FAQ snippet.
+window._aiChatFullDesc  = ${JSON.stringify(desc.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 4000))};
+window._aiChatApplyLink = ${JSON.stringify(extLink || '')};
+window._aiChatJobFacts  = ${JSON.stringify({
+    category, city, salary, shift, experience,
+    employmentType: empType, deadline: expiresAt || ''
+})};
+
+function aiChatBuildContext() {
+    var f = window._aiChatJobFacts || {};
+    var lines = [
+        'Job title: "' + window._faqPostTitle + '"',
+        f.category ? 'Category: ' + f.category : '',
+        f.city ? 'Location: ' + f.city : '',
+        f.salary ? 'Salary: ' + f.salary : '',
+        f.shift ? 'Shift: ' + f.shift : '',
+        f.experience ? 'Experience required: ' + f.experience : '',
+        f.employmentType ? 'Employment type: ' + f.employmentType : '',
+        f.deadline ? 'Application deadline: ' + f.deadline : '',
+        window._aiChatApplyLink ? 'Application link available: yes' : 'Application link available: no',
+        '',
+        'Full job description:',
+        window._aiChatFullDesc,
+        ''
+    ].filter(function(l){ return l !== ''; });
+    return lines.join(String.fromCharCode(10)) + String.fromCharCode(10);
+}
 window._faqCache      = {};
 
 function faqBuildContext() {
@@ -2085,12 +2117,59 @@ function aiChatHandleKey(ev) {
     }
 }
 
+function aiChatEscapeHtml(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Minimal markdown -> HTML for bot replies: **bold**, #/## headings,
+// "- "/"* " bullet lists, and paragraph breaks. Escapes HTML first so no
+// raw tags from the model ever get injected.
+function aiChatRenderMarkdown(raw) {
+    var text = aiChatEscapeHtml(raw);
+    var lines = text.split(String.fromCharCode(10));
+    var html = '';
+    var inList = false;
+    for (var i = 0; i < lines.length; i++) {
+        var line = lines[i];
+        var trimmed = line.trim();
+        if (!trimmed) { if (inList) { html += '</ul>'; inList = false; } continue; }
+        var bulletMatch = /^[-*]\s+(.*)/.exec(trimmed);
+        var headMatch = /^#{1,4}\s+(.*)/.exec(trimmed);
+        if (bulletMatch) {
+            if (!inList) { html += '<ul>'; inList = true; }
+            html += '<li>' + aiChatInline(bulletMatch[1]) + '</li>';
+            continue;
+        }
+        if (inList) { html += '</ul>'; inList = false; }
+        if (headMatch) {
+            html += '<h4>' + aiChatInline(headMatch[1]) + '</h4>';
+            continue;
+        }
+        html += '<p>' + aiChatInline(trimmed) + '</p>';
+    }
+    if (inList) html += '</ul>';
+    return html;
+}
+
+function aiChatInline(s) {
+    return s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+}
+
 function aiChatAppendMessage(role, text, isLoading) {
     var box = document.getElementById('ai-chat-messages');
     if (!box) return null;
     var div = document.createElement('div');
     div.className = 'ai-chat-msg ' + (role === 'user' ? 'user' : 'bot') + (isLoading ? ' loading' : '');
-    div.textContent = text;
+    if (role === 'user' || isLoading) {
+        div.textContent = text;
+    } else {
+        var applyLink = window._aiChatApplyLink || '';
+        var marker = '[[APPLY_BUTTON]]';
+        var hasApply = applyLink && text.indexOf(marker) !== -1;
+        var cleanText = text.split(marker).join('');
+        div.innerHTML = aiChatRenderMarkdown(cleanText) +
+            (hasApply ? '<a class="ai-chat-apply-btn" href="' + aiChatEscapeHtml(applyLink) + '" target="_blank" rel="noopener">Apply Now →</a>' : '');
+    }
     box.appendChild(div);
     box.scrollTop = box.scrollHeight;
     return div;
@@ -2115,12 +2194,12 @@ async function aiChatSend() {
         return (m.role === 'user' ? 'Visitor' : 'Assistant') + ': ' + m.text;
     }).join(NL);
 
-    var prompt = faqBuildContext() +
+    var prompt = aiChatBuildContext() +
         'You are answering questions ONLY about the specific job post above. ' +
         'Do not answer questions unrelated to this job post — politely say you can only help with questions about this job post. ' +
-        'Keep answers short, direct, and based only on the information given above.' + NL + NL +
+        'Base every answer only on the information given above.' + NL + NL +
         'Conversation so far:' + NL + historyText + NL + NL +
-        'Reply with only your answer to the latest visitor message, no extra formatting.';
+        'Reply with only your answer to the latest visitor message.';
 
     try {
         var reply = await faqAskChat(prompt, window._aiChatApiUrl);
@@ -2638,9 +2717,6 @@ ${title ? `<div class="update-title">${e(title)}</div>` : ""}
 </div>
 <!-- End TrustBox widget --> 
 
-<div style="width:100%;text-align:center;overflow:hidden;margin:10px 0;">
-<script>atOptions={'key':'333dc5bfbee4b34aa13ee95636901b9c','format':'iframe','height':60,'width':468,'params':{}};
-<\/script><script src="https://www.highperformanceformat.com/333dc5bfbee4b34aa13ee95636901b9c/invoke.js"><\/script></div>
 
 ${desc ? `<div class="update-desc">${desc}</div>` : ""}
 
@@ -2701,9 +2777,6 @@ ${chatBtn}
 
 </div>
 
-<div style="width:100%;text-align:center;overflow:hidden;margin:12px 0;">
-<script>atOptions={'key':'333dc5bfbee4b34aa13ee95636901b9c','format':'iframe','height':60,'width':468,'params':{}};
-<\/script><script src="https://www.highperformanceformat.com/333dc5bfbee4b34aa13ee95636901b9c/invoke.js"><\/script></div>
 
 <div class="sidebar-col">
 <!-- ── Related Updates Section ───────────────────────────────────────── -->
@@ -3508,9 +3581,6 @@ main{width:100%;padding:16px 12px;}
 
     ${title ? `<div class="note-title">${e(title)}</div>` : ""}
 
-<div style="width:100%;text-align:center;overflow:hidden;margin:10px 0;">
-<script>atOptions={'key':'333dc5bfbee4b34aa13ee95636901b9c','format':'iframe','height':60,'width':468,'params':{}};
-<\/script><script src="https://www.highperformanceformat.com/333dc5bfbee4b34aa13ee95636901b9c/invoke.js"><\/script></div>
 
     ${diplomas.length > 0 ? `<div class="diplomas-row">${diplomaTagsHtml}</div>` : ""}
     <!-- Trustpilot Widget -->
@@ -3530,9 +3600,6 @@ main{width:100%;padding:16px 12px;}
   <img src="https://healthjobportal.com/images/share.png" alt="Share and earn reward, make friends" style="width:100%;height:auto;border-radius:10px;display:block;">
 </a>
 
-<div style="width:100%;text-align:center;overflow:hidden;margin:10px 0;">
-<script>atOptions={'key':'333dc5bfbee4b34aa13ee95636901b9c','format':'iframe','height':60,'width':468,'params':{}};
-<\/script><script src="https://www.highperformanceformat.com/333dc5bfbee4b34aa13ee95636901b9c/invoke.js"><\/script></div>
 
 ${pdfUrl ? '<div class="pdf-top-bar"><span class="pdf-page-info" id="pdf-page-info">Loading...</span><button class="pdf-dl-btn" onclick="pdfDownload()"><svg viewBox=\"0 0 24 24\"><path d=\"M19 9h-4V3H9v6H5l7 7 7-7zm-8 2V5h2v6h1.17L12 13.17 9.83 11H11zm-6 7h14v2H5v-2z\"/></svg>Download PDF</button></div><div class="pdf-loading" id="pdf-loading">📄 Loading PDF...</div><div class="pdf-pages-wrap" id="pdf-canvas-wrap"></div>' : '<div style=\"text-align:center;padding:20px;color:var(--muted);font-size:14px;\">PDF not available</div>'}
 </div>
@@ -3588,16 +3655,6 @@ async function renderAllPages() {
         canvas.style.pointerEvents = 'none';
         wrap.appendChild(canvas);
         await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
-
-        // ہر page کے بعد ad بینر (آخری page کے بعد نہیں)
-        if (i < totalPages) {
-            const adWrap = document.createElement('div');
-            adWrap.className = 'pdf-ad-wrap';
-            adWrap.style.cssText = 'width:100%;text-align:center;overflow:hidden;margin:16px 0;padding:10px 0;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;background:#f8fafc;border-radius:8px;';
-            adWrap.innerHTML = '<script>atOptions={"key":"333dc5bfbee4b34aa13ee95636901b9c","format":"iframe","height":60,"width":468,"params":{}};' + '<' + '/script>' +
-                '<script src="https://www.highperformanceformat.com/333dc5bfbee4b34aa13ee95636901b9c/invoke.js">' + '<' + '/script>';
-            wrap.appendChild(adWrap);
-        }
     }
 }
 function updatePageInfo() {
