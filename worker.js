@@ -70,6 +70,38 @@ const NOTIFY_API_URL = "https://notication-healthjobs.vercel.app";
 // 2) FAQ question/answer generation (hacker-chat AI backend)
 const FAQ_CHAT_API_URL = "https://hacker-chat-nu.vercel.app/api/chat";
 
+// 3) "Ask AI" chat widget rate limiter (Cloudflare Workers AI route below).
+//    Module-scope so it persists across requests within the same isolate.
+const AI_CHAT_RATE_LIMIT_WINDOW_MS = 60 * 1000;  // 1 minute window
+const AI_CHAT_RATE_LIMIT_MAX = 8;                // max messages per visitor per minute
+const AI_CHAT_RATE_LIMIT_MIN_GAP_MS = 2500;      // min gap between two messages from same visitor
+const aiChatRateLimitStore = new Map(); // ip -> { timestamps: number[], lastAt: number }
+
+function checkAiChatRateLimit(ip) {
+    const now = Date.now();
+    let entry = aiChatRateLimitStore.get(ip);
+    if (!entry) {
+        entry = { timestamps: [], lastAt: 0 };
+        aiChatRateLimitStore.set(ip, entry);
+    }
+    if (now - entry.lastAt < AI_CHAT_RATE_LIMIT_MIN_GAP_MS) {
+        return { allowed: false, reason: "too_fast" };
+    }
+    entry.timestamps = entry.timestamps.filter(function (t) { return now - t < AI_CHAT_RATE_LIMIT_WINDOW_MS; });
+    if (entry.timestamps.length >= AI_CHAT_RATE_LIMIT_MAX) {
+        return { allowed: false, reason: "too_many" };
+    }
+    entry.timestamps.push(now);
+    entry.lastAt = now;
+    if (aiChatRateLimitStore.size > 5000) {
+        const cutoff = now - AI_CHAT_RATE_LIMIT_WINDOW_MS;
+        for (const pair of aiChatRateLimitStore.entries()) {
+            if (pair[1].lastAt < cutoff) aiChatRateLimitStore.delete(pair[0]);
+        }
+    }
+    return { allowed: true };
+}
+
 export default {
     async fetch(request, env, ctx) {
 
@@ -354,6 +386,71 @@ const html = buildNotePage(note, noteId, verified);
             await refreshRelatedPools(env);
             const fresh = await env.JOBS_KV.get("related_updates_pool", { type: "text" });
             return new Response(fresh || "[]", { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+        // ── Ask AI chat (Cloudflare Workers AI, native env.AI binding) ──────────
+        // Used ONLY by the full-screen "Ask AI about this job" chat widget on
+        // the frontend (aiChatSend). The existing Groq-based FAQ generator on
+        // hacker-chat-nu.vercel.app is completely untouched by this route.
+        if (url.pathname === "/api/ai-chat" && request.method === "POST") {
+            try {
+                const body = await request.json();
+                const prompt = body && body.prompt;
+                if (!prompt || !String(prompt).trim()) {
+                    return new Response(JSON.stringify({ reply: "No input detected." }), {
+                        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" }
+                    });
+                }
+
+                const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+                const rl = checkAiChatRateLimit(ip);
+                if (!rl.allowed) {
+                    const msg = rl.reason === "too_fast"
+                        ? "You are sending messages too quickly. Please wait a moment before sending another."
+                        : "You have sent a lot of messages in a short time. Please wait a minute and try again.";
+                    return new Response(JSON.stringify({ reply: msg }), {
+                        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" }
+                    });
+                }
+
+                const NL = String.fromCharCode(10);
+                const systemPrompt = [
+                    "You are the official AI assistant embedded on a single job post page on Health Jobs Portal, a healthcare jobs website in Pakistan.",
+                    "",
+                    "STRICT RULES:",
+                    "1. Answer ONLY using the job post details given to you in the user message context. Do not invent details that are not present in the post.",
+                    "2. Answer ONLY questions related to this specific job post (eligibility, how to apply, deadline, salary, location, requirements, etc). If the visitor asks something unrelated to this job post, politely decline in one short sentence and say you can only help with questions about this job post.",
+                    "3. LANGUAGE RULE (very important): Detect the language of the visitor latest message and reply ENTIRELY in that same language and script:",
+                    "   - If the visitor writes in English, reply only in English.",
+                    "   - If the visitor writes in Urdu script, reply only in Urdu script.",
+                    "   - If the visitor writes in Roman Urdu (Urdu words typed using English letters), reply only in Roman Urdu using English letters, do not switch to Urdu script and do not switch to English.",
+                    "   Never mix two languages or scripts in the same reply.",
+                    "4. Be professional, warm, and concise, short paragraphs, no filler, no repeating the question back.",
+                    "5. Do not use markdown formatting, headings, or bullet symbols, reply in plain conversational sentences."
+                ].join(NL);
+
+                const aiResult = await env.AI.run("@cf/meta/llama-3.1-8b-instruct", {
+                    messages: [
+                        { role: "system", content: systemPrompt },
+                        { role: "user", content: String(prompt) }
+                    ],
+                    temperature: 0.4
+                });
+
+                const reply = aiResult && aiResult.response;
+                if (!reply || !String(reply).trim()) {
+                    return new Response(JSON.stringify({ reply: "Sorry, I could not get a response right now. Please try again in a moment." }), {
+                        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" }
+                    });
+                }
+
+                return new Response(JSON.stringify({ reply: reply }), {
+                    status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" }
+                });
+            } catch (e) {
+                return new Response(JSON.stringify({ reply: "Sorry, I could not get a response right now. Please try again in a moment." }), {
+                    status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" }
+                });
+            }
         }
         // ── Click/View Tracker ────────────────────────────────────────────────────
 if (url.pathname === "/api/track" && request.method === "POST") {
@@ -1003,6 +1100,7 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
     .ai-chat-modal{top:50%;left:50%;transform:translate(-50%,-50%);inset:auto;width:min(640px,92vw);height:min(760px,88vh);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.25);overflow:hidden;}
 }
 .ai-chat-header{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border-color);flex-shrink:0;}
+.ai-chat-header > svg{width:20px;height:20px;flex-shrink:0;color:var(--primary-blue);}
 .ai-chat-header .ai-chat-title{font-weight:700;font-size:15px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .ai-chat-close{background:none;border:none;cursor:pointer;padding:6px;color:#555;flex-shrink:0;}
 .ai-chat-close svg{width:22px;height:22px;}
@@ -1900,6 +1998,7 @@ async function loadRelatedJobs() {
 
 // ── Related Questions (FAQ) ───────────────────────────────────────────────
 window._faqApiUrl = '${FAQ_CHAT_API_URL}';
+window._aiChatApiUrl = '/api/ai-chat';
 window._faqPostTitle  = ${JSON.stringify(title)};
 window._faqPostDesc   = ${JSON.stringify(desc.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 500))};
 window._faqQuestions  = [];
@@ -1936,11 +2035,11 @@ function faqParseQuestionsReply(text) {
     }
 }
 
-async function faqAskChat(prompt) {
+async function faqAskChat(prompt, targetUrl) {
     var controller = new AbortController();
     var timer = setTimeout(function(){ controller.abort(); }, 25000);
     try {
-        var res = await fetch(window._faqApiUrl, {
+        var res = await fetch(targetUrl || window._faqApiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ prompt: prompt }),
@@ -2043,7 +2142,7 @@ async function aiChatSend() {
         'Reply with only your answer to the latest visitor message, no extra formatting.';
 
     try {
-        var reply = await faqAskChat(prompt);
+        var reply = await faqAskChat(prompt, window._aiChatApiUrl);
         if (loadingEl) loadingEl.remove();
         aiChatAppendMessage('bot', reply);
         window._aiChatHistory.push({ role: 'bot', text: reply });
