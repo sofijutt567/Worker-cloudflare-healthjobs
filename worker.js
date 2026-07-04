@@ -2272,7 +2272,7 @@ function aiChatRenderMarkdown(raw) {
 }
 
 function aiChatInline(s) {
-    var boldRe = new RegExp('\\*\\*(.+?)\\*\\*', 'g');
+    var boldRe = new RegExp('[*][*](.+?)[*][*]', 'g');
     return String(s || '').replace(boldRe, '<strong>$1</strong>');
 }
 
