@@ -2145,9 +2145,11 @@ function aiChatHandleKey(ev) {
     var restartingForLang = false;
 
     function isLatinScript(s) {
-        var letters = (s.match(/[A-Za-z\u0600-\u06FF]/g) || []);
+        var arabicRange = String.fromCharCode(1536) + '-' + String.fromCharCode(1791);
+        var lettersRe = new RegExp('[A-Za-z' + arabicRange + ']', 'g');
+        var letters = (s.match(lettersRe) || []);
         if (!letters.length) return false;
-        var latin = (s.match(/[A-Za-z]/g) || []).length;
+        var latin = (s.match(new RegExp('[A-Za-z]', 'g')) || []).length;
         return latin / letters.length > 0.6;
     }
 
@@ -2160,17 +2162,23 @@ function aiChatHandleKey(ev) {
         r.onresult = function (event) {
             var input = document.getElementById('ai-chat-input');
             if (!input) return;
-            var finalChunk = '';
-            var interimChunk = '';
-            for (var i = event.resultIndex; i < event.results.length; i++) {
+
+            // Rebuild the ENTIRE session transcript fresh from event.results
+            // every time, instead of appending deltas. Some engines resend
+            // the whole phrase-so-far as new "final" results on each event;
+            // appending those deltas on top of what we'd already saved was
+            // what caused text to duplicate and snowball.
+            var sessionFinal = '';
+            var sessionInterim = '';
+            for (var i = 0; i < event.results.length; i++) {
                 var transcript = event.results[i][0].transcript;
-                if (event.results[i].isFinal) finalChunk += transcript;
-                else interimChunk += transcript;
+                if (event.results[i].isFinal) sessionFinal += transcript;
+                else sessionInterim += transcript;
             }
 
             // If we're in Urdu mode but the speech is clearly Latin/English,
             // restart recognition in English mode so it renders correctly.
-            var sample = finalChunk || interimChunk;
+            var sample = sessionFinal || sessionInterim;
             if (sample && currentLang === 'ur-PK' && isLatinScript(sample)) {
                 baseText = (baseText + ' ' + sample).trim();
                 input.value = baseText;
@@ -2180,10 +2188,9 @@ function aiChatHandleKey(ev) {
                 return;
             }
 
-            var combined = (baseText + ' ' + finalChunk + interimChunk).trim();
+            var combined = (baseText + ' ' + sessionFinal + sessionInterim).trim();
             input.value = combined;
             input.dispatchEvent(new Event('input'));
-            if (finalChunk) baseText = (baseText + ' ' + finalChunk).trim();
         };
 
         r.onerror = function () {
@@ -2253,8 +2260,9 @@ function aiChatRenderMarkdown(raw) {
         var line = lines[i];
         var trimmed = line.trim();
         if (!trimmed) { if (inList) { html += '</ul>'; inList = false; } continue; }
-        var bulletMatch = /^[-*]\s+(.*)/.exec(trimmed);
-        var headMatch = /^#{1,4}\s+(.*)/.exec(trimmed);
+        var TAB = String.fromCharCode(9);
+        var bulletMatch = new RegExp('^[-*][ ' + TAB + ']+(.*)').exec(trimmed);
+        var headMatch = new RegExp('^#{1,4}[ ' + TAB + ']+(.*)').exec(trimmed);
         if (bulletMatch) {
             if (!inList) { html += '<ul>'; inList = true; }
             html += '<li>' + aiChatInline(bulletMatch[1]) + '</li>';
@@ -2318,7 +2326,11 @@ async function aiChatSend() {
     var prompt = aiChatBuildContext() +
         'You are answering questions ONLY about the specific job post above. ' +
         'Do not answer questions unrelated to this job post — politely say you can only help with questions about this job post. ' +
-        'Base every answer only on the information given above.' + NL + NL +
+        'Base every answer only on the information given above.' + NL +
+        "Language rule: reply in the SAME language and script as the visitor's latest message below. " +
+        'If the visitor wrote in Urdu script, reply ENTIRELY in Urdu script (اردو). ' +
+        'If the visitor wrote in English, reply ENTIRELY in English. ' +
+        'Never use Hindi/Devanagari script, and never mix two scripts or languages in the same reply.' + NL + NL +
         'Conversation so far:' + NL + historyText + NL + NL +
         'Reply with only your answer to the latest visitor message.';
 
