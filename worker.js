@@ -989,9 +989,12 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
 
 /* ── Related Questions (FAQ) Section ── */
 .faq-section{margin-top:14px;margin-bottom:6px;background:var(--bg-white);border-radius:12px;border:1px solid var(--border-color);padding:20px;box-shadow:0 2px 4px rgba(0,0,0,0.02);}
-.ai-ask-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:#ffffff;color:#111;border:1px solid var(--border-color);border-radius:10px;padding:11px 16px;font-weight:600;font-size:14px;cursor:pointer;margin-top:14px;box-shadow:0 1px 3px rgba(0,0,0,0.04);transition:box-shadow .15s ease,transform .15s ease;}
-.ai-ask-btn:hover{box-shadow:0 2px 8px rgba(0,0,0,0.08);transform:translateY(-1px);}
-.ai-ask-btn svg{width:18px;height:18px;flex-shrink:0;}
+.ai-ask-btn{display:inline-flex;align-items:center;gap:0;background:#ffffff;color:#111;border:1px solid var(--border-color);border-radius:999px;padding:9px;font-weight:600;font-size:13px;cursor:pointer;margin-top:14px;box-shadow:0 1px 3px rgba(0,0,0,0.06);transition:box-shadow .15s ease,transform .15s ease,padding .35s ease;}
+.ai-ask-btn:hover{box-shadow:0 2px 8px rgba(0,0,0,0.1);transform:translateY(-1px);}
+.ai-ask-btn svg{width:16px;height:16px;flex-shrink:0;}
+.ai-ask-btn .ai-ask-label{max-width:0;overflow:hidden;white-space:nowrap;opacity:0;margin-left:0;transition:max-width .4s ease,opacity .3s ease,margin-left .4s ease;}
+.ai-ask-btn.pulse{padding:9px 15px;}
+.ai-ask-btn.pulse .ai-ask-label{max-width:160px;opacity:1;margin-left:7px;}
 .ai-chat-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9998;display:none;}
 .ai-chat-overlay.open{display:block;}
 .ai-chat-modal{position:fixed;inset:0;background:#fff;z-index:9999;display:none;flex-direction:column;}
@@ -1259,7 +1262,7 @@ ${city ? `
 <!-- ── Ask AI Button ──────────────────────────────────────────────────── -->
 <button class="ai-ask-btn" id="ai-ask-btn" onclick="openAiChat()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg>
-    <span>Ask AI about this job</span>
+    <span class="ai-ask-label">Ask AI</span>
 </button>
 <!-- ── Frequently Asked Questions Section ─────────────────────────────── -->
 <div class="faq-section" id="faq-section">
@@ -1964,6 +1967,18 @@ async function faqAskChat(prompt) {
 window._aiChatHistory = [];
 window._aiChatBusy = false;
 
+(function(){
+    var btn = document.getElementById('ai-ask-btn');
+    if (!btn) return;
+    function pulseOnce() {
+        if (btn.classList.contains('pulse')) return;
+        btn.classList.add('pulse');
+        setTimeout(function(){ btn.classList.remove('pulse'); }, 2200);
+    }
+    setTimeout(pulseOnce, 1800);
+    setInterval(pulseOnce, 6000);
+})();
+
 function openAiChat() {
     document.getElementById('ai-chat-overlay').classList.add('open');
     document.getElementById('ai-chat-modal').classList.add('open');
@@ -2015,15 +2030,16 @@ async function aiChatSend() {
     window._aiChatHistory.push({ role: 'user', text: question });
     var loadingEl = aiChatAppendMessage('bot', 'Typing...', true);
 
+    var NL = String.fromCharCode(10);
     var historyText = window._aiChatHistory.slice(-8).map(function(m){
         return (m.role === 'user' ? 'Visitor' : 'Assistant') + ': ' + m.text;
-    }).join('\n');
+    }).join(NL);
 
     var prompt = faqBuildContext() +
         'You are answering questions ONLY about the specific job post above. ' +
         'Do not answer questions unrelated to this job post — politely say you can only help with questions about this job post. ' +
-        'Keep answers short, direct, and based only on the information given above.\n\n' +
-        'Conversation so far:\n' + historyText + '\n\n' +
+        'Keep answers short, direct, and based only on the information given above.' + NL + NL +
+        'Conversation so far:' + NL + historyText + NL + NL +
         'Reply with only your answer to the latest visitor message, no extra formatting.';
 
     try {
