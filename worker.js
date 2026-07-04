@@ -2040,7 +2040,7 @@ async function faqAskChat(prompt, targetUrl) {
         clearTimeout(timer);
         var data = await res.json().catch(function(){ return null; });
         if (!res.ok) {
-            throw new Error('Backend error ' + res.status + (data && data.reply ? (': ' + data.reply) : ''));
+            throw new Error('Backend error ' + res.status + (data && data.debug ? (': ' + data.debug) : (data && data.reply ? (': ' + data.reply) : '')));
         }
         var reply = (data && (data.reply || data.text || data.content || data.answer || data.result || data.output || data.message)) || '';
         if (reply && typeof reply === 'object') reply = JSON.stringify(reply);
@@ -2132,7 +2132,11 @@ async function aiChatSend() {
         window._aiChatHistory.push({ role: 'bot', text: reply });
     } catch (e) {
         if (loadingEl) loadingEl.remove();
-        aiChatAppendMessage('bot', 'Sorry, I could not get a response right now. Please try again in a moment.');
+        // TEMPORARY: showing the real error so the exact cause is visible
+        // directly in the chat. Revert to the generic message once the
+        // /api/ai-chat 500 error is confirmed fixed.
+        aiChatAppendMessage('bot', 'DEBUG ERROR: ' + ((e && e.message) || String(e)));
+        window._aiChatHistory.push({ role: 'bot', text: 'DEBUG ERROR: ' + ((e && e.message) || String(e)) });
     } finally {
         window._aiChatBusy = false;
         if (sendBtn) sendBtn.disabled = false;
