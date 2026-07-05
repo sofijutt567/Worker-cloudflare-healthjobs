@@ -1097,30 +1097,45 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
     .ai-chat-overlay{background:rgba(15,23,42,0.12);}
     .ai-chat-modal{top:auto;left:auto;inset:auto;right:24px;bottom:24px;width:380px;height:min(600px,80vh);border-radius:16px;box-shadow:0 16px 48px rgba(15,23,42,0.18);border:1px solid #e2e8f0;overflow:hidden;}
 }
-.ai-chat-header{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border-color);flex-shrink:0;}
-.ai-chat-header > .ai-chat-logo{height:32px;width:auto;object-fit:contain;flex-shrink:0;}
-.ai-chat-header .ai-chat-title{font-weight:700;font-size:15px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ai-chat-header{display:flex;align-items:center;gap:11px;padding:14px 16px;border-bottom:1px solid var(--border-color);flex-shrink:0;background:#fff;}
+.ai-chat-avatar{height:38px;width:38px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1px solid #e5e9f0;}
+.ai-chat-header-text{flex:1;overflow:hidden;}
+.ai-chat-header .ai-chat-title{font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0f172a;}
+.ai-chat-status{font-size:12px;color:#8a94a3;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ai-chat-status.typing{color:#16a34a;font-style:italic;}
 .ai-chat-close{background:none;border:none;cursor:pointer;padding:6px;color:#555;flex-shrink:0;}
 .ai-chat-close svg{width:22px;height:22px;}
 .ai-chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;background:#fafafa;}
-.ai-chat-msg{max-width:82%;padding:11px 15px;border-radius:16px;font-size:14px;line-height:1.55;word-wrap:break-word;}
+.ai-chat-msg{max-width:86%;padding:11px 15px;border-radius:16px;font-size:14px;line-height:1.6;word-wrap:break-word;}
 .ai-chat-msg.user{align-self:flex-end;background:var(--primary-blue);color:#fff;border-bottom-right-radius:5px;}
 .ai-chat-msg.bot{align-self:flex-start;background:#fff;border:1px solid #e5e9f0;color:#1e293b;border-bottom-left-radius:5px;box-shadow:0 1px 2px rgba(0,0,0,0.04);}
-.ai-chat-msg.bot.loading{color:#94a3b8;font-style:italic;}
+.ai-chat-msg.bot.loading{color:#94a3b8;}
+.ai-chat-typing-dots{display:inline-flex;align-items:center;gap:3px;padding:3px 0;}
+.ai-chat-typing-dots span{width:6px;height:6px;border-radius:50%;background:#b7c0cc;animation:aiTypingBounce 1.2s infinite ease-in-out;}
+.ai-chat-typing-dots span:nth-child(2){animation-delay:.15s;}
+.ai-chat-typing-dots span:nth-child(3){animation-delay:.3s;}
+@keyframes aiTypingBounce{0%,60%,100%{transform:translateY(0);opacity:.5;}30%{transform:translateY(-4px);opacity:1;}}
 .ai-chat-msg p{margin:0 0 8px;}
 .ai-chat-msg p:last-child{margin-bottom:0;}
-.ai-chat-msg ul,.ai-chat-msg ol{margin:6px 0 8px;padding-left:20px;}
-.ai-chat-msg li{margin-bottom:3px;}
-.ai-chat-msg h4{font-size:14.5px;font-weight:700;margin:4px 0 6px;}
+.ai-chat-msg ul,.ai-chat-msg ol{margin:6px 0 10px;padding-left:20px;}
+.ai-chat-msg li{margin-bottom:4px;}
+.ai-chat-msg h1{font-size:17px;font-weight:800;margin:6px 0 8px;}
+.ai-chat-msg h2{font-size:16px;font-weight:800;margin:6px 0 8px;}
+.ai-chat-msg h3,.ai-chat-msg h4{font-size:14.5px;font-weight:700;margin:6px 0 6px;}
 .ai-chat-msg strong{font-weight:700;}
-.ai-chat-apply-btn{display:inline-flex;align-items:center;gap:6px;margin-top:6px;padding:9px 16px;background:#16a34a;color:#fff !important;border-radius:20px;font-size:13px;font-weight:700;text-decoration:none;}
+.ai-chat-msg em{font-style:italic;}
+.ai-chat-msg a{color:#1967d2;text-decoration:underline;word-break:break-all;}
+.ai-chat-link-row{display:inline-flex;align-items:center;gap:6px;max-width:100%;}
+.ai-chat-copy-btn{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer;padding:3px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;color:#475569;}
+.ai-chat-copy-btn svg{width:13px;height:13px;}
+.ai-chat-copy-btn.copied{color:#16a34a;border-color:#bbf7d0;background:#f0fdf4;}
+.ai-chat-apply-btn,.ai-chat-map-btn{display:inline-flex;align-items:center;gap:6px;margin-top:6px;margin-right:6px;padding:9px 16px;border-radius:20px;font-size:13px;font-weight:700;text-decoration:none;}
+.ai-chat-apply-btn{background:#16a34a;color:#fff !important;}
+.ai-chat-map-btn{background:#eef2ff;color:#3730a3 !important;border:1px solid #dfe3fb;}
 .ai-chat-inputbar{display:flex;gap:8px;padding:12px;border-top:1px solid var(--border-color);flex-shrink:0;background:#fff;}
 .ai-chat-inputbar textarea{flex:1;resize:none;border:1px solid var(--border-color);border-radius:10px;padding:10px 12px;font-size:14px;font-family:inherit;max-height:100px;}
 .ai-chat-inputbar button{background:var(--primary-blue);color:#fff;border:none;border-radius:10px;padding:0 18px;font-weight:600;cursor:pointer;font-size:14px;}
 .ai-chat-inputbar button:disabled{opacity:.5;cursor:not-allowed;}
-#ai-chat-mic{background:#f1f5f9;color:#334155;border:1px solid var(--border-color);border-radius:10px;padding:0 12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-#ai-chat-mic.listening{background:#dc2626;color:#fff;border-color:#dc2626;animation:aiMicPulse 1.1s ease-in-out infinite;}
-@keyframes aiMicPulse{0%{box-shadow:0 0 0 0 rgba(220,38,38,.45);}70%{box-shadow:0 0 0 9px rgba(220,38,38,0);}100%{box-shadow:0 0 0 0 rgba(220,38,38,0);}}
 .faq-heading{font-size:15px;font-weight:800;color:var(--text-main);margin-bottom:12px;display:flex;align-items:center;gap:7px;}
 .faq-heading svg{width:18px;height:18px;fill:var(--primary-blue);}
 .faq-list{display:flex;flex-direction:column;gap:8px;}
@@ -1377,8 +1392,11 @@ ${city ? `
 <div class="ai-chat-overlay" id="ai-chat-overlay" onclick="closeAiChat()"></div>
 <div class="ai-chat-modal" id="ai-chat-modal">
     <div class="ai-chat-header">
-        <img src="https://healthjobportal.com/images/logo.png" alt="Health Jobs Portal" class="ai-chat-logo" onerror="this.style.display='none'">
-        <div class="ai-chat-title" id="ai-chat-title"></div>
+        <img src="https://i.pravatar.cc/150?img=68" alt="AI" class="ai-chat-avatar" id="ai-chat-avatar" onerror="this.style.display='none'">
+        <div class="ai-chat-header-text">
+            <div class="ai-chat-title" id="ai-chat-title">AI Assistant</div>
+            <div class="ai-chat-status" id="ai-chat-status">Online</div>
+        </div>
         <button class="ai-chat-close" onclick="closeAiChat()" aria-label="Close">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
         </button>
@@ -1386,9 +1404,6 @@ ${city ? `
     <div class="ai-chat-messages" id="ai-chat-messages"></div>
     <div class="ai-chat-inputbar">
         <textarea id="ai-chat-input" rows="1" placeholder="Ask a question about this job post..." onkeydown="aiChatHandleKey(event)"></textarea>
-        <button id="ai-chat-mic" type="button" onclick="aiChatToggleMic()" title="Speak your question" aria-label="Voice input" style="display:none;">
-            <svg id="ai-chat-mic-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
-        </button>
         <button id="ai-chat-send" onclick="aiChatSend()">Send</button>
     </div>
 </div>
@@ -2124,126 +2139,6 @@ function aiChatHandleKey(ev) {
     }
 }
 
-// ---- Voice input (speak-to-text) for the AI chat box ----
-// Uses the browser's built-in speech recognition (same engine behind the
-// Gboard mic). We start listening in Urdu mode; if what comes back is
-// actually Latin-script/English, we transparently restart recognition in
-// English mode so English speech is transcribed in English letters and
-// Urdu speech is transcribed in Urdu script, without the user having to
-// pick a language manually.
-(function () {
-    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    var micBtn = document.getElementById('ai-chat-mic');
-    if (!SR || !micBtn) return; // browser doesn't support it: keep button hidden
-
-    micBtn.style.display = '';
-
-    var recognition = null;
-    var listening = false;
-    var baseText = '';       // text already in the box before this recording started
-    var currentLang = 'ur-PK';
-    var restartingForLang = false;
-
-    function isLatinScript(s) {
-        var arabicRange = String.fromCharCode(1536) + '-' + String.fromCharCode(1791);
-        var lettersRe = new RegExp('[A-Za-z' + arabicRange + ']', 'g');
-        var letters = (s.match(lettersRe) || []);
-        if (!letters.length) return false;
-        var latin = (s.match(new RegExp('[A-Za-z]', 'g')) || []).length;
-        return latin / letters.length > 0.6;
-    }
-
-    function makeRecognition(lang) {
-        var r = new SR();
-        r.lang = lang;
-        r.continuous = true;
-        r.interimResults = true;
-
-        r.onresult = function (event) {
-            var input = document.getElementById('ai-chat-input');
-            if (!input) return;
-
-            // Rebuild the ENTIRE session transcript fresh from event.results
-            // every time, instead of appending deltas. Some engines resend
-            // the whole phrase-so-far as new "final" results on each event;
-            // appending those deltas on top of what we'd already saved was
-            // what caused text to duplicate and snowball.
-            var sessionFinal = '';
-            var sessionInterim = '';
-            for (var i = 0; i < event.results.length; i++) {
-                var transcript = event.results[i][0].transcript;
-                if (event.results[i].isFinal) sessionFinal += transcript;
-                else sessionInterim += transcript;
-            }
-
-            // If we're in Urdu mode but the speech is clearly Latin/English,
-            // restart recognition in English mode so it renders correctly.
-            var sample = sessionFinal || sessionInterim;
-            if (sample && currentLang === 'ur-PK' && isLatinScript(sample)) {
-                baseText = (baseText + ' ' + sample).trim();
-                input.value = baseText;
-                restartingForLang = true;
-                currentLang = 'en-US';
-                r.stop(); // onend will relaunch with the new lang
-                return;
-            }
-
-            var combined = (baseText + ' ' + sessionFinal + sessionInterim).trim();
-            input.value = combined;
-            input.dispatchEvent(new Event('input'));
-        };
-
-        r.onerror = function () {
-            stopListening();
-        };
-
-        r.onend = function () {
-            if (restartingForLang && listening) {
-                restartingForLang = false;
-                recognition = makeRecognition(currentLang);
-                try { recognition.start(); } catch (e) { stopListening(); }
-            } else {
-                stopListening();
-            }
-        };
-
-        return r;
-    }
-
-    function startListening() {
-        var input = document.getElementById('ai-chat-input');
-        baseText = input ? (input.value || '').trim() : '';
-        currentLang = 'ur-PK';
-        recognition = makeRecognition(currentLang);
-        try {
-            recognition.start();
-            listening = true;
-            micBtn.classList.add('listening');
-        } catch (e) {
-            listening = false;
-        }
-    }
-
-    function stopListening() {
-        listening = false;
-        restartingForLang = false;
-        micBtn.classList.remove('listening');
-        if (recognition) {
-            try { recognition.stop(); } catch (e) {}
-        }
-        var input = document.getElementById('ai-chat-input');
-        if (input) setTimeout(function () { input.focus(); }, 50);
-    }
-
-    window.aiChatToggleMic = function () {
-        if (listening) {
-            stopListening();
-        } else {
-            startListening();
-        }
-    };
-})();
-
 function aiChatEscapeHtml(s) {
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
@@ -2255,33 +2150,67 @@ function aiChatRenderMarkdown(raw) {
     var text = aiChatEscapeHtml(raw);
     var lines = text.split(String.fromCharCode(10));
     var html = '';
-    var inList = false;
+    var listType = null; // 'ul' or 'ol', tracks the currently open list
+    var TAB = String.fromCharCode(9);
+    var WS = '[ ' + TAB + ']';
+
+    function closeList() {
+        if (listType) { html += '</' + listType + '>'; listType = null; }
+    }
+
     for (var i = 0; i < lines.length; i++) {
-        var line = lines[i];
-        var trimmed = line.trim();
-        if (!trimmed) { if (inList) { html += '</ul>'; inList = false; } continue; }
-        var TAB = String.fromCharCode(9);
-        var bulletMatch = new RegExp('^[-*][ ' + TAB + ']+(.*)').exec(trimmed);
-        var headMatch = new RegExp('^#{1,4}[ ' + TAB + ']+(.*)').exec(trimmed);
+        var trimmed = lines[i].trim();
+        if (!trimmed) { closeList(); continue; }
+
+        var bulletMatch = new RegExp('^[-*]' + WS + '+(.*)').exec(trimmed);
+        var orderedMatch = new RegExp('^[0-9]+[.]' + WS + '+(.*)').exec(trimmed);
+        var headMatch = new RegExp('^(#{1,6})' + WS + '+(.*)').exec(trimmed);
+
         if (bulletMatch) {
-            if (!inList) { html += '<ul>'; inList = true; }
+            if (listType !== 'ul') { closeList(); html += '<ul>'; listType = 'ul'; }
             html += '<li>' + aiChatInline(bulletMatch[1]) + '</li>';
             continue;
         }
-        if (inList) { html += '</ul>'; inList = false; }
+        if (orderedMatch) {
+            if (listType !== 'ol') { closeList(); html += '<ol>'; listType = 'ol'; }
+            html += '<li>' + aiChatInline(orderedMatch[1]) + '</li>';
+            continue;
+        }
+        closeList();
         if (headMatch) {
-            html += '<h4>' + aiChatInline(headMatch[1]) + '</h4>';
+            var level = headMatch[1].length;
+            var tag = level === 1 ? 'h1' : (level === 2 ? 'h2' : 'h3');
+            html += '<' + tag + '>' + aiChatInline(headMatch[2]) + '</' + tag + '>';
             continue;
         }
         html += '<p>' + aiChatInline(trimmed) + '</p>';
     }
-    if (inList) html += '</ul>';
+    closeList();
     return html;
 }
 
 function aiChatInline(s) {
+    var text = String(s || '');
+    var SP = String.fromCharCode(32);
+    var TAB = String.fromCharCode(9);
+
+    // Markdown-style [label](url) links, and bare http/https URLs — handled
+    // together so a URL never gets linkified twice.
+    var linkRe = new RegExp('[[](.+?)][(](.+?)[)]' + '|' + '(https?://[^' + SP + TAB + '<]+)', 'g');
+    text = text.replace(linkRe, function (match, label, url, rawUrl) {
+        if (rawUrl) {
+            return '<a href="' + rawUrl + '" target="_blank" rel="noopener">' + rawUrl + '</a>';
+        }
+        return '<a href="' + url + '" target="_blank" rel="noopener">' + label + '</a>';
+    });
+
     var boldRe = new RegExp('[*][*](.+?)[*][*]', 'g');
-    return String(s || '').replace(boldRe, '<strong>$1</strong>');
+    text = text.replace(boldRe, '<strong>$1</strong>');
+
+    var italicRe = new RegExp('[*](.+?)[*]', 'g');
+    text = text.replace(italicRe, '<em>$1</em>');
+
+    return text;
 }
 
 function aiChatAppendMessage(role, text, isLoading) {
@@ -2289,19 +2218,68 @@ function aiChatAppendMessage(role, text, isLoading) {
     if (!box) return null;
     var div = document.createElement('div');
     div.className = 'ai-chat-msg ' + (role === 'user' ? 'user' : 'bot') + (isLoading ? ' loading' : '');
-    if (role === 'user' || isLoading) {
+    if (isLoading) {
+        div.innerHTML = '<span class="ai-chat-typing-dots"><span></span><span></span><span></span></span>';
+    } else if (role === 'user') {
         div.textContent = text;
     } else {
         var applyLink = window._aiChatApplyLink || '';
-        var marker = '[[APPLY_BUTTON]]';
-        var hasApply = applyLink && text.indexOf(marker) !== -1;
-        var cleanText = text.split(marker).join('');
+        var applyMarker = '[[APPLY_BUTTON]]';
+        var mapMarker = '[[MAP_BUTTON]]';
+        var hasApply = applyLink && text.indexOf(applyMarker) !== -1;
+        var jobCity = (window._aiChatJobFacts && window._aiChatJobFacts.city) || '';
+        var hasMap = jobCity && text.indexOf(mapMarker) !== -1;
+        var cleanText = text.split(applyMarker).join('').split(mapMarker).join('');
+        var mapUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(jobCity);
+
         div.innerHTML = aiChatRenderMarkdown(cleanText) +
-            (hasApply ? '<a class="ai-chat-apply-btn" href="' + aiChatEscapeHtml(applyLink) + '" target="_blank" rel="noopener">Apply Now →</a>' : '');
+            (hasApply ? '<a class="ai-chat-apply-btn" href="' + aiChatEscapeHtml(applyLink) + '" target="_blank" rel="noopener">Apply Now →</a>' : '') +
+            (hasMap ? '<a class="ai-chat-map-btn" href="' + aiChatEscapeHtml(mapUrl) + '" target="_blank" rel="noopener">📍 View on Map</a>' : '');
+
+        aiChatAttachCopyButtons(div);
     }
     box.appendChild(div);
     box.scrollTop = box.scrollHeight;
     return div;
+}
+
+// Adds a small copy icon next to every link inside a rendered bot message.
+function aiChatAttachCopyButtons(container) {
+    var links = container.querySelectorAll('a');
+    links.forEach(function (link) {
+        if (link.classList.contains('ai-chat-apply-btn') || link.classList.contains('ai-chat-map-btn')) return;
+        var href = link.getAttribute('href') || '';
+        if (!href) return;
+
+        var wrap = document.createElement('span');
+        wrap.className = 'ai-chat-link-row';
+        link.parentNode.insertBefore(wrap, link);
+        wrap.appendChild(link);
+
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'ai-chat-copy-btn';
+        btn.title = 'Copy link';
+        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+        btn.onclick = function () {
+            navigator.clipboard.writeText(href).then(function () {
+                btn.classList.add('copied');
+                setTimeout(function () { btn.classList.remove('copied'); }, 1500);
+            });
+        };
+        wrap.appendChild(btn);
+    });
+}
+
+// Detects Devanagari (Hindi) script characters by codepoint range,
+// without needing any backslash/unicode-escape in the source.
+function aiChatHasDevanagari(s) {
+    var text = String(s || '');
+    for (var i = 0; i < text.length; i++) {
+        var code = text.charCodeAt(i);
+        if (code >= 2304 && code <= 2431) return true; // U+0900–U+097F Devanagari block
+    }
+    return false;
 }
 
 async function aiChatSend() {
@@ -2317,6 +2295,8 @@ async function aiChatSend() {
     aiChatAppendMessage('user', question);
     window._aiChatHistory.push({ role: 'user', text: question });
     var loadingEl = aiChatAppendMessage('bot', 'Typing...', true);
+    var statusEl = document.getElementById('ai-chat-status');
+    if (statusEl) { statusEl.textContent = 'typing…'; statusEl.classList.add('typing'); }
 
     var NL = String.fromCharCode(10);
     var historyText = window._aiChatHistory.slice(-8).map(function(m){
@@ -2330,12 +2310,39 @@ async function aiChatSend() {
         "Language rule: reply in the SAME language and script as the visitor's latest message below. " +
         'If the visitor wrote in Urdu script, reply ENTIRELY in Urdu script (اردو). ' +
         'If the visitor wrote in English, reply ENTIRELY in English. ' +
-        'Never use Hindi/Devanagari script, and never mix two scripts or languages in the same reply.' + NL + NL +
+        'Never use Hindi/Devanagari script, and never mix two scripts or languages in the same reply.' + NL +
+        'Formatting rule: for short answers just write plain sentences. ' +
+        'But if the answer is long or covers several points (eligibility, how to apply, documents needed, fees, dates, etc), ' +
+        'structure it clearly using markdown: short "## " headings for each section and "- " bullet points or "1. " numbered ' +
+        'steps for lists, the same way ChatGPT formats a detailed answer. Keep each bullet short and scannable.' + NL +
+        'Button rule: if your answer explains how to apply, is about applying, or the visitor asks how to apply, ' +
+        'put the exact text [[APPLY_BUTTON]] on its own at the point where they would click to apply — do not describe a link, just place that marker. ' +
+        'If your answer mentions or is about the job location/city and the visitor is asking where it is, put the exact text [[MAP_BUTTON]] ' +
+        'on its own right after mentioning the location. Only use these two markers, exactly as written, and only when relevant.' + NL + NL +
         'Conversation so far:' + NL + historyText + NL + NL +
         'Reply with only your answer to the latest visitor message.';
 
     try {
         var reply = await faqAskChat(prompt, window._aiChatApiUrl);
+
+        // Safety net: if the model still slipped into Devanagari, ask it
+        // once more to rewrite the same answer purely in Urdu script.
+        if (aiChatHasDevanagari(reply)) {
+            var fixPrompt = 'Rewrite the following answer so it says exactly the same thing, ' +
+                'but written ENTIRELY in pure Urdu script (اردو). ' +
+                'Do not use any Hindi/Devanagari letters anywhere, and do not mix any other script or language into it. ' +
+                'Return only the rewritten answer, nothing else.' + NL + NL +
+                'Answer to rewrite:' + NL + reply;
+            try {
+                var fixedReply = await faqAskChat(fixPrompt, window._aiChatApiUrl);
+                if (fixedReply && !aiChatHasDevanagari(fixedReply)) {
+                    reply = fixedReply;
+                }
+            } catch (fixErr) {
+                // keep the original reply if the correction attempt fails
+            }
+        }
+
         if (loadingEl) loadingEl.remove();
         aiChatAppendMessage('bot', reply);
         window._aiChatHistory.push({ role: 'bot', text: reply });
@@ -2345,6 +2352,7 @@ async function aiChatSend() {
     } finally {
         window._aiChatBusy = false;
         if (sendBtn) sendBtn.disabled = false;
+        if (statusEl) { statusEl.textContent = 'Online'; statusEl.classList.remove('typing'); }
     }
 }
 
