@@ -1,730 +1,654 @@
-/**
- * ============================================================
- * Health Jobs Portal — Cloudflare Worker (FINAL PRODUCTION)
- * ============================================================
- */
+var __defProp = Object.defineProperty;
+var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
+
+// worker.js
 async function getGoogleAccessToken(env) {
-    const header = btoa(JSON.stringify({ alg: "RS256", typ: "JWT" }));
-    const now = Math.floor(Date.now() / 1000);
-    const claim = btoa(JSON.stringify({
-        iss: env.GOOGLE_CLIENT_EMAIL,
-        scope: "https://www.googleapis.com/auth/indexing",
-        aud: "https://oauth2.googleapis.com/token",
-        exp: now + 3600,
-        iat: now
-    }));
-const privateKey = env.GOOGLE_PRIVATE_KEY
-    .replace(/\\n/g, '\n')
-    .replace(/\n/g, '\n')
-    .trim();    const keyData = privateKey
-        .replace('-----BEGIN PRIVATE KEY-----', '')
-        .replace('-----END PRIVATE KEY-----', '')
-        .replace(/\s/g, '');
-    const binaryKey = Uint8Array.from(atob(keyData), c => c.charCodeAt(0));
-    const cryptoKey = await crypto.subtle.importKey(
-        "pkcs8", binaryKey,
-        { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-        false, ["sign"]
-    );
-    const signingInput = `${header}.${claim}`;
-    const signature = await crypto.subtle.sign(
-        "RSASSA-PKCS1-v1_5", cryptoKey,
-        new TextEncoder().encode(signingInput)
-    );
-    const jwt = `${signingInput}.${btoa(String.fromCharCode(...new Uint8Array(signature)))}`;
-    const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`
-    });
-    const tokenData = await tokenRes.json();
-    return tokenData.access_token;
+  const header = btoa(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+  const now = Math.floor(Date.now() / 1e3);
+  const claim = btoa(JSON.stringify({
+    iss: env.GOOGLE_CLIENT_EMAIL,
+    scope: "https://www.googleapis.com/auth/indexing",
+    aud: "https://oauth2.googleapis.com/token",
+    exp: now + 3600,
+    iat: now
+  }));
+  const privateKey = env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, "\n").replace(/\n/g, "\n").trim();
+  const keyData = privateKey.replace("-----BEGIN PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", "").replace(/\s/g, "");
+  const binaryKey = Uint8Array.from(atob(keyData), (c) => c.charCodeAt(0));
+  const cryptoKey = await crypto.subtle.importKey(
+    "pkcs8",
+    binaryKey,
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const signingInput = `${header}.${claim}`;
+  const signature = await crypto.subtle.sign(
+    "RSASSA-PKCS1-v1_5",
+    cryptoKey,
+    new TextEncoder().encode(signingInput)
+  );
+  const jwt = `${signingInput}.${btoa(String.fromCharCode(...new Uint8Array(signature)))}`;
+  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`
+  });
+  const tokenData = await tokenRes.json();
+  return tokenData.access_token;
 }
-
+__name(getGoogleAccessToken, "getGoogleAccessToken");
 async function notifyGoogleIndexing(pageUrl, env) {
-    try {
-        const token = await getGoogleAccessToken(env);
-        const res = await fetch("https://indexing.googleapis.com/v3/urlNotifications:publish", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`
-            },
-            body: JSON.stringify({ url: pageUrl, type: "URL_UPDATED" })
-        });
-        const data = await res.json();
-        console.log("Google Indexing:", pageUrl, res.status);
-        return data;
-    } catch(e) {
-        console.error("Indexing error:", e);
-    }
+  try {
+    const token = await getGoogleAccessToken(env);
+    const res = await fetch("https://indexing.googleapis.com/v3/urlNotifications:publish", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify({ url: pageUrl, type: "URL_UPDATED" })
+    });
+    const data = await res.json();
+    console.log("Google Indexing:", pageUrl, res.status);
+    return data;
+  } catch (e) {
+    console.error("Indexing error:", e);
+  }
 }
-const KV_TTL      = 60 * 60 * 24 * 7;   // 7 دن — job pages rarely change
-const KV_TTL_NOTE = 60 * 60 * 24 * 14;  // 14 دن — notes almost never change
-const SITE_URL  = "https://healthjobportal.com";
-const SITE_NAME = "Health Jobs Portal";
-const FALLBACK_IMG = `${SITE_URL}/images/logo.png`;
-
-// 1) Like/comment push-notification backend
-const NOTIFY_API_URL = "https://notication-healthjobs.vercel.app";
-// 2) FAQ question/answer generation (hacker-chat AI backend)
-const FAQ_CHAT_API_URL = "https://hacker-chat-nu.vercel.app/api/chat";
-
-// 3) "Ask AI" chat widget rate limiter (Cloudflare Workers AI route below).
-//    Module-scope so it persists across requests within the same isolate.
-const AI_CHAT_RATE_LIMIT_WINDOW_MS = 60 * 1000;  // 1 minute window
-const AI_CHAT_RATE_LIMIT_MAX = 8;                // max messages per visitor per minute
-const AI_CHAT_RATE_LIMIT_MIN_GAP_MS = 2500;      // min gap between two messages from same visitor
-const aiChatRateLimitStore = new Map(); // ip -> { timestamps: number[], lastAt: number }
-
+__name(notifyGoogleIndexing, "notifyGoogleIndexing");
+var KV_TTL = 60 * 60 * 24 * 7;
+var KV_TTL_NOTE = 60 * 60 * 24 * 14;
+var SITE_URL = "https://healthjobportal.com";
+var SITE_NAME = "Health Jobs Portal";
+var FALLBACK_IMG = `${SITE_URL}/images/logo.png`;
+var NOTIFY_API_URL = "https://notication-healthjobs.vercel.app";
+var AI_CHAT_RATE_LIMIT_WINDOW_MS = 60 * 1e3;
+var AI_CHAT_RATE_LIMIT_MAX = 8;
+var AI_CHAT_RATE_LIMIT_MIN_GAP_MS = 2500;
+var aiChatRateLimitStore = /* @__PURE__ */ new Map();
 function checkAiChatRateLimit(ip) {
-    const now = Date.now();
-    let entry = aiChatRateLimitStore.get(ip);
-    if (!entry) {
-        entry = { timestamps: [], lastAt: 0 };
-        aiChatRateLimitStore.set(ip, entry);
+  const now = Date.now();
+  let entry = aiChatRateLimitStore.get(ip);
+  if (!entry) {
+    entry = { timestamps: [], lastAt: 0 };
+    aiChatRateLimitStore.set(ip, entry);
+  }
+  if (now - entry.lastAt < AI_CHAT_RATE_LIMIT_MIN_GAP_MS) {
+    return { allowed: false, reason: "too_fast" };
+  }
+  entry.timestamps = entry.timestamps.filter(function(t) {
+    return now - t < AI_CHAT_RATE_LIMIT_WINDOW_MS;
+  });
+  if (entry.timestamps.length >= AI_CHAT_RATE_LIMIT_MAX) {
+    return { allowed: false, reason: "too_many" };
+  }
+  entry.timestamps.push(now);
+  entry.lastAt = now;
+  if (aiChatRateLimitStore.size > 5e3) {
+    const cutoff = now - AI_CHAT_RATE_LIMIT_WINDOW_MS;
+    for (const pair of aiChatRateLimitStore.entries()) {
+      if (pair[1].lastAt < cutoff) aiChatRateLimitStore.delete(pair[0]);
     }
-    if (now - entry.lastAt < AI_CHAT_RATE_LIMIT_MIN_GAP_MS) {
-        return { allowed: false, reason: "too_fast" };
-    }
-    entry.timestamps = entry.timestamps.filter(function (t) { return now - t < AI_CHAT_RATE_LIMIT_WINDOW_MS; });
-    if (entry.timestamps.length >= AI_CHAT_RATE_LIMIT_MAX) {
-        return { allowed: false, reason: "too_many" };
-    }
-    entry.timestamps.push(now);
-    entry.lastAt = now;
-    if (aiChatRateLimitStore.size > 5000) {
-        const cutoff = now - AI_CHAT_RATE_LIMIT_WINDOW_MS;
-        for (const pair of aiChatRateLimitStore.entries()) {
-            if (pair[1].lastAt < cutoff) aiChatRateLimitStore.delete(pair[0]);
-        }
-    }
-    return { allowed: true };
+  }
+  return { allowed: true };
 }
-
-export default {
-    async fetch(request, env, ctx) {
-
-        const url = new URL(request.url);
-
-        const corsHeaders = {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type, X-Admin-Secret, Authorization",
-            "Access-Control-Max-Age": "86400"
-        };
-
-        if (request.method === "OPTIONS") {
-            return new Response(null, { status: 204, headers: corsHeaders });
-        }
-
-        // ── Cache Invalidation ────────────────────────────────────────────────
-// ── Purge ALL jobs cache (bulk) ──────────────────────────────────────────────
-if (url.pathname === "/api/purge-all-jobs" && request.method === "POST") {
-    const authHeader = request.headers.get("X-Admin-Secret");
-    if (!env.ADMIN_SECRET || authHeader !== env.ADMIN_SECRET) {
-        return new Response(JSON.stringify({ success: false, error: "Unauthorized" }), {
-            status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
+__name(checkAiChatRateLimit, "checkAiChatRateLimit");
+var worker_default = {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+    const corsHeaders = {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, X-Admin-Secret, Authorization",
+      "Access-Control-Max-Age": "86400"
+    };
+    if (request.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: corsHeaders });
     }
-    try {
-        // List all job: keys and delete them
+    if (url.pathname === "/api/purge-all-jobs" && request.method === "POST") {
+      const authHeader = request.headers.get("X-Admin-Secret");
+      if (!env.ADMIN_SECRET || authHeader !== env.ADMIN_SECRET) {
+        return new Response(JSON.stringify({ success: false, error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+      try {
         let deleted = 0;
-        let cursor = undefined;
+        let cursor = void 0;
         do {
-            const listed = cursor
-                ? await env.JOBS_KV.list({ prefix: "job:", cursor })
-                : await env.JOBS_KV.list({ prefix: "job:" });
-            await Promise.all(listed.keys.map(k => env.JOBS_KV.delete(k.name)));
-            deleted += listed.keys.length;
-            cursor = listed.list_complete ? undefined : listed.cursor;
+          const listed = cursor ? await env.JOBS_KV.list({ prefix: "job:", cursor }) : await env.JOBS_KV.list({ prefix: "job:" });
+          await Promise.all(listed.keys.map((k) => env.JOBS_KV.delete(k.name)));
+          deleted += listed.keys.length;
+          cursor = listed.list_complete ? void 0 : listed.cursor;
         } while (cursor);
         return new Response(JSON.stringify({ success: true, deleted }), {
-            status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" }
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
-    } catch(e) {
+      } catch (e) {
         return new Response(JSON.stringify({ success: false, error: e.message }), {
-            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" }
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
+      }
     }
-}
-
-if (url.pathname === "/api/invalidate-cache" && request.method === "POST") {
-    const authHeader = request.headers.get("X-Admin-Secret");
-    if (!env.ADMIN_SECRET || authHeader !== env.ADMIN_SECRET) {
+    if (url.pathname === "/api/invalidate-cache" && request.method === "POST") {
+      const authHeader = request.headers.get("X-Admin-Secret");
+      if (!env.ADMIN_SECRET || authHeader !== env.ADMIN_SECRET) {
         return new Response(JSON.stringify({ success: false, error: "Unauthorized" }), {
-            status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
-    }
-    try {
+      }
+      try {
         const body = await request.json();
         const slug = body.slug;
         const type = body.type || "both";
         const deleted = [];
-
         if (type === "general_post" || type === "both") {
-            await env.JOBS_KV.delete(`update:${slug}`);
-            deleted.push(`update:${slug}`);
+          await env.JOBS_KV.delete(`update:${slug}`);
+          deleted.push(`update:${slug}`);
         }
         if (type === "employer_post" || type === "candidate_post" || type === "both") {
-            await env.JOBS_KV.delete(`job:${slug}`);
-            deleted.push(`job:${slug}`);
+          await env.JOBS_KV.delete(`job:${slug}`);
+          deleted.push(`job:${slug}`);
         }
         if (type === "medical_note" || type === "both") {
-            await env.JOBS_KV.delete(`note:${slug}`);
-            deleted.push(`note:${slug}`);
+          await env.JOBS_KV.delete(`note:${slug}`);
+          deleted.push(`note:${slug}`);
         }
-
-        // ✅ Google Indexing
         const indexingPromises = [];
         if (type === "general_post") {
-            indexingPromises.push(notifyGoogleIndexing(`${SITE_URL}/updates/${slug}`, env));
+          indexingPromises.push(notifyGoogleIndexing(`${SITE_URL}/updates/${slug}`, env));
         }
         if (type === "employer_post" || type === "candidate_post") {
-            indexingPromises.push(notifyGoogleIndexing(`${SITE_URL}/jobs/${slug}`, env));
+          indexingPromises.push(notifyGoogleIndexing(`${SITE_URL}/jobs/${slug}`, env));
         }
         if (type === "medical_note") {
-            indexingPromises.push(notifyGoogleIndexing(`${SITE_URL}/notes/${slug}`, env));
+          indexingPromises.push(notifyGoogleIndexing(`${SITE_URL}/notes/${slug}`, env));
         }
         if (type === "both") {
-            indexingPromises.push(notifyGoogleIndexing(`${SITE_URL}/updates/${slug}`, env));
-            indexingPromises.push(notifyGoogleIndexing(`${SITE_URL}/jobs/${slug}`, env));
+          indexingPromises.push(notifyGoogleIndexing(`${SITE_URL}/updates/${slug}`, env));
+          indexingPromises.push(notifyGoogleIndexing(`${SITE_URL}/jobs/${slug}`, env));
         }
-
-        // ✅ Sitemap Ping
         indexingPromises.push(
-            fetch(`https://www.google.com/ping?sitemap=${encodeURIComponent(SITE_URL + '/sitemap.xml')}`)
-            .catch(e => console.log("Ping error:", e))
+          fetch(`https://www.google.com/ping?sitemap=${encodeURIComponent(SITE_URL + "/sitemap.xml")}`).catch((e) => console.log("Ping error:", e))
         );
-
         ctx.waitUntil(Promise.all(indexingPromises));
-
-        return new Response(JSON.stringify({ 
-            success: true, 
-            message: "Cache cleared + Google notified", 
-            deleted 
+        return new Response(JSON.stringify({
+          success: true,
+          message: "Cache cleared + Google notified",
+          deleted
         }), {
-            status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" }
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
-    } catch (e) {
+      } catch (e) {
         return new Response(JSON.stringify({ success: false, error: e.message }), {
-            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" }
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
+      }
     }
-}
-
-    
-
-if (request.method === "POST" && !url.pathname.startsWith("/api/")) {
-    return fetch(request);
-}
-if (url.pathname === "/" || url.pathname === "/index.html") {
-    // Pehle origin se fetch karo
-    const originRes = await fetch(request);
-    const originHtml = await originRes.text();
-    
-    // Firestore se latest 50 posts ke links lao
-    const res = await fetch(
+    if (request.method === "POST" && !url.pathname.startsWith("/api/")) {
+      return fetch(request);
+    }
+    if (url.pathname === "/" || url.pathname === "/index.html") {
+      const originRes = await fetch(request);
+      const originHtml = await originRes.text();
+      const res = await fetch(
         `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents:runQuery?key=${env.FIREBASE_API_KEY}`,
         {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({
-                structuredQuery: {
-                    from: [{collectionId: "posts"}],
-                    orderBy: [{field: {fieldPath: "postedDateISO"}, direction: "DESCENDING"}],
-                    limit: 50
-                }
-            })
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            structuredQuery: {
+              from: [{ collectionId: "posts" }],
+              orderBy: [{ field: { fieldPath: "postedDateISO" }, direction: "DESCENDING" }],
+              limit: 50
+            }
+          })
         }
-    );
-    
-    const data = await res.json();
-    let linksHtml = '<div style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">';
-    
-    (data || []).filter(d => d.document).forEach(d => {
+      );
+      const data = await res.json();
+      let linksHtml = '<div style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">';
+      (data || []).filter((d) => d.document).forEach((d) => {
         const f = d.document.fields || {};
         const docId = d.document.name.split("/").pop();
         const type = f.type?.stringValue || "";
         const slug = f.slug?.stringValue || docId;
-        const title = f.title?.stringValue || f.desc?.stringValue?.substring(0,60) || "Healthcare Post";
-        const url = type === "general_post" 
-            ? `/updates/${slug}` 
-            : `/jobs/${docId}`;
-        linksHtml += `<a href="${url}">${title}</a>`;
-    });
-    
-    linksHtml += '</div>';
-    
-    // HTML میں body کے بعد inject کرو
-    const modifiedHtml = originHtml.replace('</body>', linksHtml + '</body>');
-    
-    return new Response(modifiedHtml, {
+        const title = f.title?.stringValue || f.desc?.stringValue?.substring(0, 60) || "Healthcare Post";
+        const url2 = type === "general_post" ? `/updates/${slug}` : `/jobs/${docId}`;
+        linksHtml += `<a href="${url2}">${title}</a>`;
+      });
+      linksHtml += "</div>";
+      const modifiedHtml = originHtml.replace("</body>", linksHtml + "</body>");
+      return new Response(modifiedHtml, {
         headers: {
-            "Content-Type": "text/html;charset=UTF-8",
-            "Cache-Control": "public, max-age=1800"
+          "Content-Type": "text/html;charset=UTF-8",
+          "Cache-Control": "public, max-age=1800"
         }
-    });
-}
-        // ── Sitemap ───────────────────────────────────────────────────────────
-        if (url.pathname === "/sitemap.xml") {
-            return handleSitemap(env);
+      });
+    }
+    if (url.pathname === "/sitemap.xml") {
+      return handleSitemap(env);
+    }
+    if (url.pathname.startsWith("/jobs/")) {
+      const slug = url.pathname.replace(/^\/jobs\//, "").replace(/\/$/, "").trim();
+      if (!slug) return Response.redirect(`${SITE_URL}/`, 302);
+      try {
+        const cached = await env.JOBS_KV.get(`job:${slug}`, { type: "text" });
+        if (cached) return htmlResponse(cached, { "X-Cache": "HIT" });
+      } catch (e) {
+        console.error("KV read error:", e);
+      }
+      let post;
+      try {
+        post = await fetchFromFirestore(slug, env);
+      } catch (e) {
+        console.error("Firestore error:", e);
+        return errorPage(500, "Server Error", "Could not load this post.");
+      }
+      if (!post) return errorPage(
+        404,
+        "Post Not Found",
+        "This job post may have been removed or the link is incorrect."
+      );
+      const verified = await isUserVerified(post.posterId, env);
+      const html = await buildPostPage(post, slug, verified, env);
+      ctx.waitUntil(
+        env.JOBS_KV.put(`job:${slug}`, html, { expirationTtl: KV_TTL }).catch((e) => console.error("KV write error:", e))
+      );
+      return htmlResponse(html, { "X-Cache": "MISS" });
+    }
+    if (url.pathname.startsWith("/updates/")) {
+      const slug = url.pathname.replace(/^\/updates\//, "").replace(/\/$/, "").trim();
+      if (!slug) return Response.redirect(`${SITE_URL}/`, 302);
+      try {
+        const cached = await env.JOBS_KV.get(`update:${slug}`, { type: "text" });
+        if (cached) return htmlResponse(cached, { "X-Cache": "HIT" });
+      } catch (e) {
+        console.error("KV read error (update):", e);
+      }
+      let post;
+      try {
+        post = await fetchFromFirestoreBySlug(slug, env);
+      } catch (e) {
+        console.error("Firestore error (update):", e);
+        return errorPage(500, "Server Error", "Could not load this update.");
+      }
+      if (!post) return errorPage(
+        404,
+        "Update Not Found",
+        "This update may have been removed or the link is incorrect."
+      );
+      const verified = await isUserVerified(post.posterId, env);
+      const html = buildUpdatePage(post, post._docId || slug, verified);
+      ctx.waitUntil(
+        env.JOBS_KV.put(`update:${slug}`, html, { expirationTtl: KV_TTL }).catch((e) => console.error("KV write error (update):", e))
+      );
+      return htmlResponse(html, { "X-Cache": "MISS" });
+    }
+    if (url.pathname.startsWith("/notes/")) {
+      const noteId = url.pathname.replace(/^\/notes\//, "").replace(/\/$/, "").trim();
+      if (!noteId) return Response.redirect(`${SITE_URL}/notes.html`, 302);
+      try {
+        const cached = await env.JOBS_KV.get(`note:${noteId}`, { type: "text" });
+        if (cached) return htmlResponse(cached, { "X-Cache": "HIT" });
+      } catch (e) {
+        console.error("KV read error (note):", e);
+      }
+      let note;
+      try {
+        note = await fetchNoteFromFirestore(noteId, env);
+      } catch (e) {
+        console.error("Firestore error (note):", e);
+        return errorPage(500, "Server Error", "Could not load this note.");
+      }
+      if (!note) return errorPage(
+        404,
+        "Note Not Found",
+        "This note may have been removed or the link is incorrect."
+      );
+      const verified = await isUserVerified(note.posterId, env);
+      const html = buildNotePage(note, noteId, verified);
+      ctx.waitUntil(
+        env.JOBS_KV.put(`note:${noteId}`, html, { expirationTtl: KV_TTL_NOTE }).catch((e) => console.error("KV write error (note):", e))
+      );
+      return htmlResponse(html, { "X-Cache": "MISS" });
+    }
+    if (url.pathname === "/api/related-jobs-pool") {
+      const pool = await env.JOBS_KV.get("related_jobs_pool", { type: "text" });
+      if (pool) return new Response(pool, { headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "public, max-age=3600" } });
+      await refreshRelatedPools(env);
+      const fresh = await env.JOBS_KV.get("related_jobs_pool", { type: "text" });
+      return new Response(fresh || "[]", { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (url.pathname === "/api/related-updates-pool") {
+      const pool = await env.JOBS_KV.get("related_updates_pool", { type: "text" });
+      if (pool) return new Response(pool, { headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "public, max-age=3600" } });
+      await refreshRelatedPools(env);
+      const fresh = await env.JOBS_KV.get("related_updates_pool", { type: "text" });
+      return new Response(fresh || "[]", { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (url.pathname === "/api/ai-chat" && request.method === "POST") {
+      try {
+        const body = await request.json();
+        const prompt = body && body.prompt;
+        if (!prompt || !String(prompt).trim()) {
+          return new Response(JSON.stringify({ reply: "No input detected." }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          });
         }
-
-        // ── Jobs Route ────────────────────────────────────────────────────────
-        if (url.pathname.startsWith("/jobs/")) {
-            const slug = url.pathname.replace(/^\/jobs\//, "").replace(/\/$/, "").trim();
-            if (!slug) return Response.redirect(`${SITE_URL}/`, 302);
-
-            try {
-                const cached = await env.JOBS_KV.get(`job:${slug}`, { type: "text" });
-                if (cached) return htmlResponse(cached, { "X-Cache": "HIT" });
-            } catch (e) {
-                console.error("KV read error:", e);
-            }
-
-            let post;
-            try {
-                post = await fetchFromFirestore(slug, env);
-            } catch (e) {
-                console.error("Firestore error:", e);
-                return errorPage(500, "Server Error", "Could not load this post.");
-            }
-
-            if (!post) return errorPage(404, "Post Not Found",
-                "This job post may have been removed or the link is incorrect.");
-
-            const verified = await isUserVerified(post.posterId, env);
-const html = buildPostPage(post, slug, verified);
-
-            ctx.waitUntil(
-                env.JOBS_KV.put(`job:${slug}`, html, { expirationTtl: KV_TTL })
-                    .catch(e => console.error("KV write error:", e))
-            );
-
-            return htmlResponse(html, { "X-Cache": "MISS" });
+        const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+        const rl = checkAiChatRateLimit(ip);
+        if (!rl.allowed) {
+          const msg = rl.reason === "too_fast" ? "You are sending messages too quickly. Please wait a moment before sending another." : "You have sent a lot of messages in a short time. Please wait a minute and try again.";
+          return new Response(JSON.stringify({ reply: msg }), {
+            status: 429,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          });
         }
-
-        // ── Updates Route ─────────────────────────────────────────────────────
-        if (url.pathname.startsWith("/updates/")) {
-            const slug = url.pathname.replace(/^\/updates\//, "").replace(/\/$/, "").trim();
-            if (!slug) return Response.redirect(`${SITE_URL}/`, 302);
-
-            try {
-                const cached = await env.JOBS_KV.get(`update:${slug}`, { type: "text" });
-                if (cached) return htmlResponse(cached, { "X-Cache": "HIT" });
-            } catch (e) {
-                console.error("KV read error (update):", e);
-            }
-
-            let post;
-            try {
-                post = await fetchFromFirestoreBySlug(slug, env);
-            } catch (e) {
-                console.error("Firestore error (update):", e);
-                return errorPage(500, "Server Error", "Could not load this update.");
-            }
-
-            if (!post) return errorPage(404, "Update Not Found",
-                "This update may have been removed or the link is incorrect.");
-
-const verified = await isUserVerified(post.posterId, env);
-const html = buildUpdatePage(post, post._docId || slug, verified);
-
-            ctx.waitUntil(
-                env.JOBS_KV.put(`update:${slug}`, html, { expirationTtl: KV_TTL })
-                    .catch(e => console.error("KV write error (update):", e))
-            );
-
-            return htmlResponse(html, { "X-Cache": "MISS" });
+        const NL = String.fromCharCode(10);
+        const systemPrompt = [
+          "You are the official AI assistant embedded on a single job post page on Health Jobs Portal, a healthcare jobs website in Pakistan.",
+          "",
+          "STRICT RULES:",
+          "1. Answer ONLY using the job post details given to you in the user message context. Do not invent details that are not present in the post.",
+          "2. Answer ONLY questions related to this specific job post (eligibility, how to apply, deadline, salary, location, requirements, etc). If the visitor asks something unrelated to this job post, politely decline in one short sentence and say you can only help with questions about this job post.",
+          "3. LANGUAGE RULE (very important): Detect the language of the visitor latest message and reply ENTIRELY in that same language and script:",
+          "   - If the visitor writes in English, reply only in English.",
+          "   - If the visitor writes in Urdu script, reply only in Urdu script.",
+          "   - If the visitor writes in Roman Urdu (Urdu words typed using English letters), reply only in Roman Urdu using English letters, do not switch to Urdu script and do not switch to English.",
+          "   Never mix two languages or scripts in the same reply.",
+          "4. Be professional, warm, and concise, short paragraphs, no filler, no repeating the question back.",
+          "5. Do not use markdown formatting, headings, or bullet symbols, reply in plain conversational sentences."
+        ].join(NL);
+        const aiResult = await env.AI.run("@cf/meta/llama-3.3-70b-instruct-fp8-fast", {
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: String(prompt) }
+          ],
+          temperature: 0.4
+        });
+        const reply = aiResult && aiResult.response;
+        if (!reply || !String(reply).trim()) {
+          return new Response(JSON.stringify({ reply: "Sorry, I could not get a response right now. Please try again in a moment." }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          });
         }
-
-// ── Notes Route ───────────────────────────────────────────────────────
-        if (url.pathname.startsWith("/notes/")) {
-            const noteId = url.pathname.replace(/^\/notes\//, "").replace(/\/$/, "").trim();
-            if (!noteId) return Response.redirect(`${SITE_URL}/notes.html`, 302);
-
-            try {
-                const cached = await env.JOBS_KV.get(`note:${noteId}`, { type: "text" });
-                if (cached) return htmlResponse(cached, { "X-Cache": "HIT" });
-            } catch (e) {
-                console.error("KV read error (note):", e);
-            }
-
-            let note;
-            try {
-                note = await fetchNoteFromFirestore(noteId, env);
-            } catch (e) {
-                console.error("Firestore error (note):", e);
-                return errorPage(500, "Server Error", "Could not load this note.");
-            }
-
-            if (!note) return errorPage(404, "Note Not Found",
-                "This note may have been removed or the link is incorrect.");
-
-            const verified = await isUserVerified(note.posterId, env);
-const html = buildNotePage(note, noteId, verified);
-
-            ctx.waitUntil(
-                env.JOBS_KV.put(`note:${noteId}`, html, { expirationTtl: KV_TTL_NOTE })
-                    .catch(e => console.error("KV write error (note):", e))
-            );
-
-            return htmlResponse(html, { "X-Cache": "MISS" });
-        }
-        // ── Serve Related Pools ───────────────────────────────────────────────
-        if (url.pathname === "/api/related-jobs-pool") {
-            const pool = await env.JOBS_KV.get("related_jobs_pool", { type: "text" });
-            if (pool) return new Response(pool, { headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "public, max-age=3600" } });
-            await refreshRelatedPools(env);
-            const fresh = await env.JOBS_KV.get("related_jobs_pool", { type: "text" });
-            return new Response(fresh || "[]", { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        }
-        if (url.pathname === "/api/related-updates-pool") {
-            const pool = await env.JOBS_KV.get("related_updates_pool", { type: "text" });
-            if (pool) return new Response(pool, { headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "public, max-age=3600" } });
-            await refreshRelatedPools(env);
-            const fresh = await env.JOBS_KV.get("related_updates_pool", { type: "text" });
-            return new Response(fresh || "[]", { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        }
-        // ── Ask AI chat (Cloudflare Workers AI, native env.AI binding) ──────────
-        // Used ONLY by the full-screen "Ask AI about this job" chat widget on
-        // the frontend (aiChatSend). The existing Groq-based FAQ generator on
-        // hacker-chat-nu.vercel.app is completely untouched by this route.
-        if (url.pathname === "/api/ai-chat" && request.method === "POST") {
-            try {
-                const body = await request.json();
-                const prompt = body && body.prompt;
-                if (!prompt || !String(prompt).trim()) {
-                    return new Response(JSON.stringify({ reply: "No input detected." }), {
-                        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" }
-                    });
-                }
-
-                const ip = request.headers.get("CF-Connecting-IP") || "unknown";
-                const rl = checkAiChatRateLimit(ip);
-                if (!rl.allowed) {
-                    const msg = rl.reason === "too_fast"
-                        ? "You are sending messages too quickly. Please wait a moment before sending another."
-                        : "You have sent a lot of messages in a short time. Please wait a minute and try again.";
-                    return new Response(JSON.stringify({ reply: msg }), {
-                        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" }
-                    });
-                }
-
-                const NL = String.fromCharCode(10);
-                const systemPrompt = [
-                    "You are the official AI assistant embedded on a single job post page on Health Jobs Portal, a healthcare jobs website in Pakistan.",
-                    "",
-                    "STRICT RULES:",
-                    "1. Answer ONLY using the job post details given to you in the user message context. Do not invent details that are not present in the post.",
-                    "2. Answer ONLY questions related to this specific job post (eligibility, how to apply, deadline, salary, location, requirements, etc). If the visitor asks something unrelated to this job post, politely decline in one short sentence and say you can only help with questions about this job post.",
-                    "3. LANGUAGE RULE (very important): Detect the language of the visitor latest message and reply ENTIRELY in that same language and script:",
-                    "   - If the visitor writes in English, reply only in English.",
-                    "   - If the visitor writes in Urdu script, reply only in Urdu script.",
-                    "   - If the visitor writes in Roman Urdu (Urdu words typed using English letters), reply only in Roman Urdu using English letters, do not switch to Urdu script and do not switch to English.",
-                    "   Never mix two languages or scripts in the same reply.",
-                    "4. Be professional, warm, and concise, short paragraphs, no filler, no repeating the question back.",
-                    "5. Do not use markdown formatting, headings, or bullet symbols, reply in plain conversational sentences."
-                ].join(NL);
-
-                const aiResult = await env.AI.run("@cf/meta/llama-3.3-70b-instruct-fp8-fast", {
-                    messages: [
-                        { role: "system", content: systemPrompt },
-                        { role: "user", content: String(prompt) }
-                    ],
-                    temperature: 0.4
-                });
-
-                const reply = aiResult && aiResult.response;
-                if (!reply || !String(reply).trim()) {
-                    return new Response(JSON.stringify({ reply: "Sorry, I could not get a response right now. Please try again in a moment." }), {
-                        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" }
-                    });
-                }
-
-                return new Response(JSON.stringify({ reply: reply }), {
-                    status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" }
-                });
-            } catch (e) {
-                return new Response(JSON.stringify({ reply: "Sorry, I could not get a response right now. Please try again in a moment." }), {
-                    status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" }
-                });
-            }
-        }
-        // ── Click/View Tracker ────────────────────────────────────────────────────
-if (url.pathname === "/api/track" && request.method === "POST") {
-    try {
+        return new Response(JSON.stringify({ reply }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      } catch (e) {
+        return new Response(JSON.stringify({ reply: "Sorry, I could not get a response right now. Please try again in a moment." }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+    }
+    if (url.pathname === "/api/track" && request.method === "POST") {
+      try {
         const body = await request.json();
         const { postId, field, collection: col } = body;
         if (!postId || !field) {
-            return new Response(JSON.stringify({ error: "Missing params" }), {
-                status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" }
-            });
+          return new Response(JSON.stringify({ error: "Missing params" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          });
         }
         const collectionName = col || "posts";
         const transformUrl = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents:commit?key=${env.FIREBASE_API_KEY}`;
-const fsRes = await fetch(transformUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-        writes: [{
-            transform: {
+        const fsRes = await fetch(transformUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            writes: [{
+              transform: {
                 document: `projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/${collectionName}/${postId}`,
                 fieldTransforms: [{
-                    fieldPath: field,
-                    increment: { integerValue: "1" }
+                  fieldPath: field,
+                  increment: { integerValue: "1" }
                 }]
-            }
-        }]
-    })
-});
-const fsData = await fsRes.json();
-console.log("Track result:", JSON.stringify(fsData));
+              }
+            }]
+          })
+        });
+        const fsData = await fsRes.json();
+        console.log("Track result:", JSON.stringify(fsData));
         return new Response(JSON.stringify({ success: true }), {
-            status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" }
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
-    } catch(e) {
+      } catch (e) {
         return new Response(JSON.stringify({ error: e.message }), {
-            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" }
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
+      }
     }
-}
-        // ── Clear Verified KV Cache ───────────────────────────────────────────
-if (url.pathname === "/api/clear-verified-cache" && request.method === "POST") {
-    try {
+    if (url.pathname === "/api/clear-verified-cache" && request.method === "POST") {
+      try {
         const body = await request.json();
         const uids = body.uids || [];
-        await Promise.all(uids.map(uid => env.JOBS_KV.delete(`verified:${uid}`)));
+        await Promise.all(uids.map((uid) => env.JOBS_KV.delete(`verified:${uid}`)));
         return new Response(JSON.stringify({ success: true, cleared: uids.length }), {
-            status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" }
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
-    } catch(e) {
+      } catch (e) {
         return new Response(JSON.stringify({ success: false, error: e.message }), {
-            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" }
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
+      }
     }
-}
-
-// ── Public Indexing Notify ────────────────────────────────────────────
-if (url.pathname === "/api/notify-index" && request.method === "POST") {
-    try {
+    if (url.pathname === "/api/notify-index" && request.method === "POST") {
+      try {
         const body = await request.json();
         const slug = body.slug;
         const type = body.type;
-        
         if (!slug || !type) {
-            return new Response(JSON.stringify({ error: "Missing slug or type" }), {
-                status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" }
-            });
+          return new Response(JSON.stringify({ error: "Missing slug or type" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          });
         }
-
         const indexingPromises = [];
-        
         if (type === "general_post") {
-            indexingPromises.push(notifyGoogleIndexing(`${SITE_URL}/updates/${slug}`, env));
+          indexingPromises.push(notifyGoogleIndexing(`${SITE_URL}/updates/${slug}`, env));
         }
         if (type === "employer_post" || type === "candidate_post") {
-            indexingPromises.push(notifyGoogleIndexing(`${SITE_URL}/jobs/${slug}`, env));
+          indexingPromises.push(notifyGoogleIndexing(`${SITE_URL}/jobs/${slug}`, env));
         }
         if (type === "medical_note") {
-            indexingPromises.push(notifyGoogleIndexing(`${SITE_URL}/notes/${slug}`, env));
+          indexingPromises.push(notifyGoogleIndexing(`${SITE_URL}/notes/${slug}`, env));
         }
-
         ctx.waitUntil(Promise.all(indexingPromises));
-
         return new Response(JSON.stringify({ success: true }), {
-            status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" }
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
-    } catch(e) {
+      } catch (e) {
         return new Response(JSON.stringify({ error: e.message }), {
-            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" }
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
+      }
     }
-}
-// ── Related Pool Refresh (internal/cron) ──────────────────────────────
-        if (url.pathname === "/api/refresh-related-pool" && request.method === "POST") {
-            const authHeader = request.headers.get("X-Admin-Secret");
-            if (!env.ADMIN_SECRET || authHeader !== env.ADMIN_SECRET) {
-                return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
-            }
-            await refreshRelatedPools(env);
-            return new Response(JSON.stringify({ success: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        }
-        if (url.pathname === '/notes') {
-    return Response.redirect(`${SITE_URL}/notes.html`, 301);
-}
-        // ── Fallback to origin ────────────────────────────────────────────────
-        return fetch(request);
+    if (url.pathname === "/api/refresh-related-pool" && request.method === "POST") {
+      const authHeader = request.headers.get("X-Admin-Secret");
+      if (!env.ADMIN_SECRET || authHeader !== env.ADMIN_SECRET) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+      }
+      await refreshRelatedPools(env);
+      return new Response(JSON.stringify({ success: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+    if (url.pathname === "/notes") {
+      return Response.redirect(`${SITE_URL}/notes.html`, 301);
+    }
+    return fetch(request);
+  }
 };
-// ── Related Pools Refresh ─────────────────────────────────────────────────────
 async function refreshRelatedPools(env) {
-    const PROJECT = env.FIREBASE_PROJECT_ID;
-    const KEY     = env.FIREBASE_API_KEY;
-
-    // Jobs pool
-    try {
-        const res = await fetch(
-            `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents:runQuery?key=${KEY}`,
-            { method: "POST", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ structuredQuery: {
-                from: [{ collectionId: "posts" }],
-                where: { fieldFilter: { field: { fieldPath: "type" }, op: "EQUAL", value: { stringValue: "employer_post" } } },
-                orderBy: [{ field: { fieldPath: "postedDateISO" }, direction: "DESCENDING" }],
-                limit: 20
-              }})
-            }
-        );
-        const data = await res.json();
-        const docs = (data || []).filter(d => d.document).map(d => {
-            const f = d.document.fields || {};
-            const docId = d.document.name.split("/").pop();
-            const imgArr = f.media?.arrayValue?.values || [];
-            const thumbUrl = imgArr.find(v => v.mapValue?.fields?.type?.stringValue === "image")
-                             ?.mapValue?.fields?.url?.stringValue || f.posterPic?.stringValue || "";
-            return {
-                id: docId,
-                title: f.title?.stringValue || "Healthcare Job",
-                location: f.location?.stringValue || "",
-                salary: f.salary?.stringValue || "Negotiable",
-                posterRole: f.posterRole?.stringValue || "employer",
-                posterName: f.posterName?.stringValue || "",
-                posterPic: f.posterPic?.stringValue || "",
-                thumb: thumbUrl
-            };
-        });
-await env.JOBS_KV.put("related_jobs_pool", JSON.stringify(docs), { expirationTtl: 259200 });
-    } catch(e) { console.error("Jobs pool refresh error:", e); }
-
-    // Updates pool
-    try {
-        const res = await fetch(
-            `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents:runQuery?key=${KEY}`,
-            { method: "POST", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ structuredQuery: {
-                from: [{ collectionId: "posts" }],
-                where: { fieldFilter: { field: { fieldPath: "type" }, op: "EQUAL", value: { stringValue: "general_post" } } },
-                orderBy: [{ field: { fieldPath: "postedDateISO" }, direction: "DESCENDING" }],
-                limit: 20
-              }})
-            }
-        );
-        const data = await res.json();
-        const docs = (data || []).filter(d => d.document).map(d => {
-            const f = d.document.fields || {};
-            const docId = d.document.name.split("/").pop();
-            const slug = f.slug?.stringValue || docId;
-            const imgArr = f.media?.arrayValue?.values || [];
-            const thumbUrl = imgArr.find(v => v.mapValue?.fields?.type?.stringValue === "image")
-                             ?.mapValue?.fields?.url?.stringValue || f.posterPic?.stringValue || "";
-            const desc = f.desc?.stringValue || "";
-            const title = f.title?.stringValue || "";
-            return {
-                id: docId,
-                slug,
-                title,
-                desc: desc.substring(0, 80) + (desc.length > 80 ? "..." : ""),
-                location: f.location?.stringValue || "",
-                postedDateISO: f.postedDateISO?.stringValue || "",
-                posterPic: f.posterPic?.stringValue || "",
-                thumb: thumbUrl
-            };
-        });
-        await env.JOBS_KV.put("related_updates_pool", JSON.stringify(docs), { expirationTtl: 259200 });
-    } catch(e) { console.error("Updates pool refresh error:", e); }
+  const PROJECT = env.FIREBASE_PROJECT_ID;
+  const KEY = env.FIREBASE_API_KEY;
+  try {
+    const res = await fetch(
+      `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents:runQuery?key=${KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ structuredQuery: {
+          from: [{ collectionId: "posts" }],
+          where: { fieldFilter: { field: { fieldPath: "type" }, op: "EQUAL", value: { stringValue: "employer_post" } } },
+          orderBy: [{ field: { fieldPath: "postedDateISO" }, direction: "DESCENDING" }],
+          limit: 20
+        } })
+      }
+    );
+    const data = await res.json();
+    const docs = (data || []).filter((d) => d.document).map((d) => {
+      const f = d.document.fields || {};
+      const docId = d.document.name.split("/").pop();
+      const imgArr = f.media?.arrayValue?.values || [];
+      const thumbUrl = imgArr.find((v) => v.mapValue?.fields?.type?.stringValue === "image")?.mapValue?.fields?.url?.stringValue || f.posterPic?.stringValue || "";
+      return {
+        id: docId,
+        title: f.title?.stringValue || "Healthcare Job",
+        location: f.location?.stringValue || "",
+        salary: f.salary?.stringValue || "Negotiable",
+        posterRole: f.posterRole?.stringValue || "employer",
+        posterName: f.posterName?.stringValue || "",
+        posterPic: f.posterPic?.stringValue || "",
+        thumb: thumbUrl
+      };
+    });
+    await env.JOBS_KV.put("related_jobs_pool", JSON.stringify(docs), { expirationTtl: 259200 });
+  } catch (e) {
+    console.error("Jobs pool refresh error:", e);
+  }
+  try {
+    const res = await fetch(
+      `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents:runQuery?key=${KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ structuredQuery: {
+          from: [{ collectionId: "posts" }],
+          where: { fieldFilter: { field: { fieldPath: "type" }, op: "EQUAL", value: { stringValue: "general_post" } } },
+          orderBy: [{ field: { fieldPath: "postedDateISO" }, direction: "DESCENDING" }],
+          limit: 20
+        } })
+      }
+    );
+    const data = await res.json();
+    const docs = (data || []).filter((d) => d.document).map((d) => {
+      const f = d.document.fields || {};
+      const docId = d.document.name.split("/").pop();
+      const slug = f.slug?.stringValue || docId;
+      const imgArr = f.media?.arrayValue?.values || [];
+      const thumbUrl = imgArr.find((v) => v.mapValue?.fields?.type?.stringValue === "image")?.mapValue?.fields?.url?.stringValue || f.posterPic?.stringValue || "";
+      const desc = f.desc?.stringValue || "";
+      const title = f.title?.stringValue || "";
+      return {
+        id: docId,
+        slug,
+        title,
+        desc: desc.substring(0, 80) + (desc.length > 80 ? "..." : ""),
+        location: f.location?.stringValue || "",
+        postedDateISO: f.postedDateISO?.stringValue || "",
+        posterPic: f.posterPic?.stringValue || "",
+        thumb: thumbUrl
+      };
+    });
+    await env.JOBS_KV.put("related_updates_pool", JSON.stringify(docs), { expirationTtl: 259200 });
+  } catch (e) {
+    console.error("Updates pool refresh error:", e);
+  }
 }
-
-// ── Sitemap Handler ───────────────────────────────────────────────────────────
+__name(refreshRelatedPools, "refreshRelatedPools");
 async function handleSitemap(env) {
-try {
-        const cachedSitemap = await env.JOBS_KV.get("sitemap_xml", { type: "text" });
-        if (cachedSitemap) {
-            return new Response(cachedSitemap, {
-                status: 200,
-                headers: {
-                    "Content-Type": "application/xml; charset=utf-8",
-                    "Cache-Control": "public, max-age=3600"
-                }
-            });
+  try {
+    const cachedSitemap = await env.JOBS_KV.get("sitemap_xml", { type: "text" });
+    if (cachedSitemap) {
+      return new Response(cachedSitemap, {
+        status: 200,
+        headers: {
+          "Content-Type": "application/xml; charset=utf-8",
+          "Cache-Control": "public, max-age=3600"
         }
-    } catch(e) {}
-    let dynamicUrlsXml = "";
-
-    try {
-        let nextPageToken = null;
-
-        do {
-            const pageParam = nextPageToken ? `&pageToken=${encodeURIComponent(nextPageToken)}` : "";
-            const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/posts?pageSize=100${pageParam}&key=${env.FIREBASE_API_KEY}`;
-            const firestoreRes = await fetch(firestoreUrl);
-
-            if (!firestoreRes.ok) break;
-
-            const firestoreData = await firestoreRes.json();
-
-            if (firestoreData.documents && firestoreData.documents.length > 0) {
-                firestoreData.documents.forEach(doc => {
-                    const fields = doc.fields || {};
-                    const slug   = doc.name.split("/").pop();
-                    let lastMod  = new Date().toISOString().split("T")[0];
-
-if (fields.postedDateISO && fields.postedDateISO.stringValue) {
-    lastMod = fields.postedDateISO.stringValue.split("T")[0];
-} else if (fields.createdAt && fields.createdAt.timestampValue) {
-    lastMod = fields.createdAt.timestampValue.split("T")[0];
-}
-
-                    // Agar general_post hai toh /updates/ URL use karo, warna /jobs/
-                    const postType = fields.type?.stringValue || "";
-                    const pathPrefix = postType === "general_post" ? "updates" : "jobs";
-
-                    dynamicUrlsXml += `
+      });
+    }
+  } catch (e) {
+  }
+  let dynamicUrlsXml = "";
+  try {
+    let nextPageToken = null;
+    do {
+      const pageParam = nextPageToken ? `&pageToken=${encodeURIComponent(nextPageToken)}` : "";
+      const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/posts?pageSize=100${pageParam}&key=${env.FIREBASE_API_KEY}`;
+      const firestoreRes = await fetch(firestoreUrl);
+      if (!firestoreRes.ok) break;
+      const firestoreData = await firestoreRes.json();
+      if (firestoreData.documents && firestoreData.documents.length > 0) {
+        firestoreData.documents.forEach((doc) => {
+          const fields = doc.fields || {};
+          const slug = doc.name.split("/").pop();
+          let lastMod = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+          if (fields.postedDateISO && fields.postedDateISO.stringValue) {
+            lastMod = fields.postedDateISO.stringValue.split("T")[0];
+          } else if (fields.createdAt && fields.createdAt.timestampValue) {
+            lastMod = fields.createdAt.timestampValue.split("T")[0];
+          }
+          const postType = fields.type?.stringValue || "";
+          const pathPrefix = postType === "general_post" ? "updates" : "jobs";
+          dynamicUrlsXml += `
   <url>
     <loc>${SITE_URL}/${pathPrefix}/${slug}</loc>
     <lastmod>${lastMod}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>`;
-                });
-            }
-
-            nextPageToken = firestoreData.nextPageToken || null;
-
-        } while (nextPageToken);
-        // Medical Notes
-        let notesNextPage = null;
-        do {
-            const notePageParam = notesNextPage ? `&pageToken=${encodeURIComponent(notesNextPage)}` : "";
-            const notesUrl = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/medical_notes?pageSize=100${notePageParam}&key=${env.FIREBASE_API_KEY}`;
-            const notesRes = await fetch(notesUrl);
-            if (!notesRes.ok) break;
-            const notesData = await notesRes.json();
-            if (notesData.documents && notesData.documents.length > 0) {
-                notesData.documents.forEach(doc => {
-                    const docId = doc.name.split("/").pop();
-                    const fields = doc.fields || {};
-                    let lastMod = new Date().toISOString().split("T")[0];
-                    if (fields.createdAt && fields.createdAt.timestampValue) {
-                        lastMod = fields.createdAt.timestampValue.split("T")[0];
-                    }
-                    dynamicUrlsXml += `
+        });
+      }
+      nextPageToken = firestoreData.nextPageToken || null;
+    } while (nextPageToken);
+    let notesNextPage = null;
+    do {
+      const notePageParam = notesNextPage ? `&pageToken=${encodeURIComponent(notesNextPage)}` : "";
+      const notesUrl = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/medical_notes?pageSize=100${notePageParam}&key=${env.FIREBASE_API_KEY}`;
+      const notesRes = await fetch(notesUrl);
+      if (!notesRes.ok) break;
+      const notesData = await notesRes.json();
+      if (notesData.documents && notesData.documents.length > 0) {
+        notesData.documents.forEach((doc) => {
+          const docId = doc.name.split("/").pop();
+          const fields = doc.fields || {};
+          let lastMod = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+          if (fields.createdAt && fields.createdAt.timestampValue) {
+            lastMod = fields.createdAt.timestampValue.split("T")[0];
+          }
+          dynamicUrlsXml += `
   <url>
     <loc>${SITE_URL}/notes/${docId}</loc>
     <lastmod>${lastMod}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>`;
-                });
-            }
-            notesNextPage = notesData.nextPageToken || null;
-        } while (notesNextPage);
-
-    } catch (err) {
-        console.error("Sitemap Firestore error:", err);
-    }
-
-    const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
+        });
+      }
+      notesNextPage = notesData.nextPageToken || null;
+    } while (notesNextPage);
+  } catch (err) {
+    console.error("Sitemap Firestore error:", err);
+  }
+  const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 
   <url>
@@ -796,193 +720,245 @@ if (fields.postedDateISO && fields.postedDateISO.stringValue) {
 ${dynamicUrlsXml}
 
 </urlset>`;
-// ... باقی سارا sitemap code ...
-
-// آخر میں return سے پہلے save کریں:
-try {
-    await env.JOBS_KV.put("sitemap_xml", sitemapXml, { expirationTtl: 21600 }); // 6 گھنٹے
-} catch(e) {}
-    return new Response(sitemapXml, {
-        status: 200,
-        headers: {
-            "Content-Type": "application/xml; charset=utf-8",
-            "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400"
-        }
-    });
+  try {
+    await env.JOBS_KV.put("sitemap_xml", sitemapXml, { expirationTtl: 21600 });
+  } catch (e) {
+  }
+  return new Response(sitemapXml, {
+    status: 200,
+    headers: {
+      "Content-Type": "application/xml; charset=utf-8",
+      "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400"
+    }
+  });
 }
-
-// ── Firestore REST Fetch (by Document ID — /jobs/ route ke liye) ──────────────
+__name(handleSitemap, "handleSitemap");
 async function fetchFromFirestore(slug, env) {
-    const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/posts/${slug}?key=${env.FIREBASE_API_KEY}`;
-    const res = await fetch(firestoreUrl);
-    if (!res.ok) return null;
-    const json = await res.json();
-    if (!json.fields) return null;
-    const parsed = parseFields(json.fields);
-    parsed._docId = slug;
-    return parsed;
+  const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/posts/${slug}?key=${env.FIREBASE_API_KEY}`;
+  const res = await fetch(firestoreUrl);
+  if (!res.ok) return null;
+  const json = await res.json();
+  if (!json.fields) return null;
+  const parsed = parseFields(json.fields);
+  parsed._docId = slug;
+  return parsed;
 }
-
-// ── Firestore REST Fetch (by slug field — /updates/ route ke liye) ────────────
+__name(fetchFromFirestore, "fetchFromFirestore");
 async function fetchFromFirestoreBySlug(slug, env) {
-    const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents:runQuery?key=${env.FIREBASE_API_KEY}`;
-
-    const body = {
-        structuredQuery: {
-            from: [{ collectionId: "posts" }],
-            where: {
-                fieldFilter: {
-                    field: { fieldPath: "slug" },
-                    op: "EQUAL",
-                    value: { stringValue: slug }
-                }
-            },
-            limit: 1
+  const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents:runQuery?key=${env.FIREBASE_API_KEY}`;
+  const body = {
+    structuredQuery: {
+      from: [{ collectionId: "posts" }],
+      where: {
+        fieldFilter: {
+          field: { fieldPath: "slug" },
+          op: "EQUAL",
+          value: { stringValue: slug }
         }
-    };
-
-    const res = await fetch(firestoreUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-    });
-
-    const json = await res.json();
-    if (!json || json.length === 0 || !json[0].document) return null;
-
-    const docName = json[0].document.name;
-    const docId = docName.split("/").pop();
-    const parsed = parseFields(json[0].document.fields || {});
-    parsed._docId = docId;
-    return parsed;
+      },
+      limit: 1
+    }
+  };
+  const res = await fetch(firestoreUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  const json = await res.json();
+  if (!json || json.length === 0 || !json[0].document) return null;
+  const docName = json[0].document.name;
+  const docId = docName.split("/").pop();
+  const parsed = parseFields(json[0].document.fields || {});
+  parsed._docId = docId;
+  return parsed;
 }
-// ── Firestore Fetch (medical_notes — by document ID) ──────────────────────────
+__name(fetchFromFirestoreBySlug, "fetchFromFirestoreBySlug");
 async function fetchNoteFromFirestore(slug, env) {
-    const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/medical_notes/${slug}?key=${env.FIREBASE_API_KEY}`;
-    const res = await fetch(firestoreUrl);
-    if (!res.ok) return null;
-    const json = await res.json();
-    if (!json.fields) return null;
-    const parsed = parseFields(json.fields);
-    parsed._docId = slug;
-    return parsed;
+  const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/medical_notes/${slug}?key=${env.FIREBASE_API_KEY}`;
+  const res = await fetch(firestoreUrl);
+  if (!res.ok) return null;
+  const json = await res.json();
+  if (!json.fields) return null;
+  const parsed = parseFields(json.fields);
+  parsed._docId = slug;
+  return parsed;
 }
+__name(fetchNoteFromFirestore, "fetchNoteFromFirestore");
 function parseFields(fields) {
-    const out = {};
-    for (const [k, v] of Object.entries(fields)) out[k] = parseValue(v);
-    return out;
+  const out = {};
+  for (const [k, v] of Object.entries(fields)) out[k] = parseValue(v);
+  return out;
 }
-
+__name(parseFields, "parseFields");
 function parseValue(v) {
-    if ("stringValue"    in v) return v.stringValue;
-    if ("integerValue"   in v) return Number(v.integerValue);
-    if ("doubleValue"    in v) return Number(v.doubleValue);
-    if ("booleanValue"   in v) return Boolean(v.booleanValue);
-    if ("nullValue"      in v) return null;
-    if ("timestampValue" in v) return v.timestampValue;
-    if ("arrayValue"     in v) return (v.arrayValue.values || []).map(parseValue);
-    if ("mapValue"       in v) return parseFields(v.mapValue.fields || {});
-    return null;
+  if ("stringValue" in v) return v.stringValue;
+  if ("integerValue" in v) return Number(v.integerValue);
+  if ("doubleValue" in v) return Number(v.doubleValue);
+  if ("booleanValue" in v) return Boolean(v.booleanValue);
+  if ("nullValue" in v) return null;
+  if ("timestampValue" in v) return v.timestampValue;
+  if ("arrayValue" in v) return (v.arrayValue.values || []).map(parseValue);
+  if ("mapValue" in v) return parseFields(v.mapValue.fields || {});
+  return null;
 }
-
-// ── Job Post Page Builder ─────────────────────────────────────────────────────
-function buildPostPage(post, slug, verified = false) {
-    const e  = s => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-    const eJ = s => String(s ?? "").replace(/\\/g,"\\\\").replace(/"/g,'\\"').replace(/\n/g,"\\n");
-    const nl = s => e(s).replace(/\n/g,"<br>");
-
-    const title      = post.title        || "Healthcare Job";
-    const category   = post.category     || "";
-    const city       = post.location     || "";
-    const address    = post.address      || city;
-    const salary     = post.salary       || "Negotiable";
-    const shift      = post.shift        || "Flexible";
-    const experience = post.experience   || "Any";
-    const desc       = post.desc         || "";
-    const posterName = post.posterName   || SITE_NAME;
-    const posterPic  = post.posterPic    || `https://ui-avatars.com/api/?name=${encodeURIComponent(posterName)}&background=0a66c2&color=fff`;
-    const posterRole = post.posterRole   || "employer";
-    const posterId   = post.posterId     || "";
-    const whatsapp   = post.whatsapp     || "";
-    const localNum   = post.localNum     || "";
-    const extLink    = post.externalLink || "";
-    const webChat    = post.webChat !== false;
-    const postedDate = post.postedDateISO || post.createdAt || "";
-    const expiresAt  = post.expiresAt    || null;
-    const media      = Array.isArray(post.media) ? post.media : [];
-    const salaryMin  = post.salaryMin    || null;
-    const salaryMax  = post.salaryMax    || null;
-    const empType    = post.employmentType || "FULL_TIME";
-    const canonicalUrl = `${SITE_URL}/jobs/${slug}`;
-    const postDocId = post._docId || slug;
-
-    const pageTitle = `${title} - ${category} in ${city} | ${SITE_NAME}`;
-    const tempDesc = desc.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-
-const metaDesc = tempDesc.length > 50 
-    ? tempDesc.substring(0, 157) + (tempDesc.length > 157 ? "..." : "")
-    : `${title} - ${category} job in ${city}. Salary: ${salary}. Experience: ${experience}. Apply now on Health Jobs Portal Pakistan.`;
-    const ogImage   = media.find(m => m.type === "image")?.url || FALLBACK_IMG;
-    const isEmployer = posterRole === "employer";
-    const roleText   = isEmployer ? "Hiring" : "Candidate";
-    const badgeClass = isEmployer ? "badge-employer" : "badge-candidate";
-
-    let formattedDate = "Recently";
-    if (postedDate) {
-        try {
-            formattedDate = new Date(postedDate).toLocaleDateString("en-US", {
-                day: "numeric", month: "short", year: "numeric"
-            });
-        } catch(_) {}
+__name(parseValue, "parseValue");
+// ── Authoritative external links whitelist ──────────────────────────
+// The AI only picks a keyword; the actual URL always comes from this
+// fixed list, so we never link out to a hallucinated/broken URL.
+var FAQ_AUTH_LINKS = [
+  { keys: ["pmc", "pakistan medical commission", "medical council", "mbbs registration", "doctor registration"], url: "https://www.pmc.gov.pk/" },
+  { keys: ["mdcat"], url: "https://www.pmc.gov.pk/MDCAT" },
+  { keys: ["pnc", "pakistan nursing council", "nursing council", "nursing registration"], url: "https://www.pnc.org.pk/" },
+  { keys: ["hec", "higher education commission", "degree attestation", "equivalence"], url: "https://www.hec.gov.pk/" },
+  { keys: ["who", "world health organization"], url: "https://www.who.int/" },
+  { keys: ["labour law", "labor law", "employment law", "employee rights"], url: "https://www.labour.gov.pk/" },
+  { keys: ["visa", "work permit"], url: "https://dgip.gov.pk/" },
+  { keys: ["income tax", "tax return", "fbr"], url: "https://www.fbr.gov.pk/" },
+  { keys: ["social security", "eobi"], url: "https://www.eobi.gov.pk/" }
+];
+function faqFindAuthLink(keyword) {
+  const k = String(keyword || "").toLowerCase().trim();
+  if (!k) return "";
+  for (const entry of FAQ_AUTH_LINKS) {
+    if (entry.keys.some((key) => k.includes(key) || key.includes(k))) return entry.url;
+  }
+  return "";
+}
+// Generates 10 static FAQ Q&A pairs for a job post using Workers AI,
+// baked once into the cached page HTML (no client-side AI calls per view).
+async function generateJobFaqHtml(title, category, city, descText, env) {
+  const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  try {
+    if (!env || !env.AI) return "";
+    const allowedKeywords = FAQ_AUTH_LINKS.map((e) => e.keys[0]).join(", ");
+    const prompt = `Job title: "${title}"\nCategory: "${category}"\nLocation: "${city}"\nJob description: "${descText.substring(0, 1200)}"\n\nGenerate exactly 10 short, realistic FAQ questions a visitor would ask about this specific job post (eligibility, how to apply, deadline, salary, location, documents, registration requirements, etc), each with a brief 2-3 sentence answer based only on the info above (invent nothing not implied by it).\nFor each item, also pick ONE relevant "keyword" from this fixed list ONLY if it genuinely applies to that question, otherwise leave keyword empty: ${allowedKeywords}.\nReturn ONLY a JSON array, no markdown, no extra text, in this exact shape:\n[{"q":"question text","a":"answer text","keyword":"one of the list above or empty"}]`;
+    const aiResult = await env.AI.run("@cf/meta/llama-3.3-70b-instruct-fp8-fast", {
+      messages: [
+        { role: "system", content: "You are a helpful assistant that writes concise, factual FAQ content for a healthcare jobs website in Pakistan. Reply with strict JSON only." },
+        { role: "user", content: prompt }
+      ],
+      temperature: 0.4
+    });
+    let text = String((aiResult && aiResult.response) || "").trim();
+    const fence = String.fromCharCode(96, 96, 96);
+    if (text.slice(0, 7).toLowerCase() === fence + "json") text = text.slice(7);
+    else if (text.slice(0, 3) === fence) text = text.slice(3);
+    if (text.slice(-3) === fence) text = text.slice(0, -3);
+    const start = text.indexOf("[");
+    const end = text.lastIndexOf("]");
+    const jsonStr = start !== -1 && end !== -1 && end > start ? text.substring(start, end + 1) : text;
+    const items = JSON.parse(jsonStr);
+    if (!Array.isArray(items) || !items.length) return "";
+    const rows = items.slice(0, 10).map((it, i) => {
+      const q = String((it && it.q) || "").trim();
+      const a = String((it && it.a) || "").trim();
+      if (!q || !a) return "";
+      const link = faqFindAuthLink(it && it.keyword);
+      let qHtml = esc(q);
+      if (link) {
+        const kw = String(it.keyword).trim();
+        const idx = q.toLowerCase().indexOf(kw.toLowerCase());
+        if (idx !== -1) {
+          const before = esc(q.slice(0, idx));
+          const match = esc(q.slice(idx, idx + kw.length));
+          const after = esc(q.slice(idx + kw.length));
+          qHtml = `${before}<a href="${link}" target="_blank" rel="noopener nofollow">${match}</a>${after}`;
+        }
+      }
+      return `<div class="faq-static-item"><p class="faq-static-q">${i + 1}. ${qHtml}</p><p class="faq-static-a">${esc(a)}</p></div>`;
+    }).filter(Boolean).join("");
+    return rows;
+  } catch (e) {
+    console.error("FAQ generation error:", e);
+    return "";
+  }
+}
+async function buildPostPage(post, slug, verified = false, env) {
+  const e = /* @__PURE__ */ __name((s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"), "e");
+  const eJ = /* @__PURE__ */ __name((s) => String(s ?? "").replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n"), "eJ");
+  const nl = /* @__PURE__ */ __name((s) => e(s).replace(/\n/g, "<br>"), "nl");
+  const title = post.title || "Healthcare Job";
+  const category = post.category || "";
+  const city = post.location || "";
+  const address = post.address || city;
+  const salary = post.salary || "Negotiable";
+  const shift = post.shift || "Flexible";
+  const experience = post.experience || "Any";
+  const desc = post.desc || "";
+  const posterName = post.posterName || SITE_NAME;
+  const posterPic = post.posterPic || `https://ui-avatars.com/api/?name=${encodeURIComponent(posterName)}&background=0a66c2&color=fff`;
+  const posterRole = post.posterRole || "employer";
+  const posterId = post.posterId || "";
+  const whatsapp = post.whatsapp || "";
+  const localNum = post.localNum || "";
+  const extLink = post.externalLink || "";
+  const webChat = post.webChat !== false;
+  const postedDate = post.postedDateISO || post.createdAt || "";
+  const expiresAt = post.expiresAt || null;
+  const media = Array.isArray(post.media) ? post.media : [];
+  const salaryMin = post.salaryMin || null;
+  const salaryMax = post.salaryMax || null;
+  const empType = post.employmentType || "FULL_TIME";
+  const canonicalUrl = `${SITE_URL}/jobs/${slug}`;
+  const postDocId = post._docId || slug;
+  const pageTitle = `${title} - ${category} in ${city} | ${SITE_NAME}`;
+  const tempDesc = desc.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  const metaDesc = tempDesc.length > 50 ? tempDesc.substring(0, 157) + (tempDesc.length > 157 ? "..." : "") : `${title} - ${category} job in ${city}. Salary: ${salary}. Experience: ${experience}. Apply now on Health Jobs Portal Pakistan.`;
+  const ogImage = media.find((m) => m.type === "image")?.url || FALLBACK_IMG;
+  const isEmployer = posterRole === "employer";
+  const roleText = isEmployer ? "Hiring" : "Candidate";
+  const badgeClass = isEmployer ? "badge-employer" : "badge-candidate";
+  let formattedDate = "Recently";
+  if (postedDate) {
+    try {
+      formattedDate = new Date(postedDate).toLocaleDateString("en-US", {
+        day: "numeric",
+        month: "short",
+        year: "numeric"
+      });
+    } catch (_) {
     }
-
-    let waNumber = "";
-    if (whatsapp.trim()) {
-        waNumber = whatsapp.replace(/[^0-9]/g, "");
-        if (waNumber.startsWith("0")) waNumber = "92" + waNumber.substring(1);
-    }
-const callNumber = localNum.trim();
-    const waMsg = encodeURIComponent(`Hi, I saw your post "${title}" on Health Jobs Portal and I am interested.`);
-
-    let mediaHtml = "";
-    if (media.length > 0) {
-        mediaHtml = '<div class="media-container">' + media.map(m => {
-            if (m.type === "image") return `<div class="media-item"><img src="${e(m.url)}" alt="${e(title)}" loading="lazy" onclick="openLightbox('${e(m.url)}')" style="cursor:zoom-in;"></div>`;
-            if (m.type === "video") return `<div class="media-item"><video src="${e(m.url)}" controls preload="none" style="width:100%;border-radius:8px;border:1px solid var(--border-color);" poster="${e(ogImage)}"></video></div>`;
-            if (m.type === "pdf")   return `<div class="media-item"><a href="${e(m.url)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;padding:12px 16px;background:#f0f7ff;border:1px solid #d0e1fd;border-radius:8px;text-decoration:none;color:#1967d2;font-size:14px;font-weight:600;"><svg width="16" height="16" viewBox="0 0 24 24" fill="#1967d2"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg> 📄 ${e(m.name || "View Document")}</a></div>`;
-            return "";
-        }).join("") + '</div>';
-    }
-
-const extLinkHtml = extLink.trim()
-    ? `<div onclick="requireAuth(async function(){ await trackClick('${e(slug)}','linkClicks'); window.open('${e(extLink)}','_blank'); })" style="display:inline-flex;align-items:center;gap:8px;margin-top:10px;margin-bottom:5px;padding:10px 16px;background:#f0f7ff;border:1px solid #d0e1fd;border-radius:8px;text-decoration:none;color:#1967d2;font-size:14px;font-weight:600;cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="#1967d2"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>Apply Now</div>`
-    : "";
-
-const whatsappBtn = waNumber
-    ? `<div class="circle-btn-wrapper" style="cursor:pointer;" onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','whatsappClicks'); window.open('https://wa.me/${e(waNumber)}?text=${waMsg}','_blank'); })"><div class="circle-btn btn-wa"><svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg></div><span class="btn-label">WhatsApp</span></div>`
-    : "";
-
-const callBtn = callNumber
-    ? `<div class="circle-btn-wrapper" style="cursor:pointer;" onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','callClicks'); window.location.href='tel:${e(callNumber)}'; })"><div class="circle-btn btn-call"><svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg></div><span class="btn-label">Call</span></div>`
-    : "";
-
-const chatBtn = (webChat && posterId)
-    ? `<div class="circle-btn-wrapper" style="cursor:pointer;" onclick="requireAuth(function(){ trackClick('${e(slug)}','chatClicks'); window.location.href='${SITE_URL}/chat.html?uid=${e(posterId)}'; })"><div class="circle-btn btn-chat"><svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg></div><span class="btn-label">Web Chat</span></div>`
-    : "";
-    
-    let baseSalaryLd = "";
-    if (salaryMin) {
-        baseSalaryLd = `"baseSalary":{"@type":"MonetaryAmount","currency":"PKR","value":{"@type":"QuantitativeValue","minValue":${salaryMin},${salaryMax ? `"maxValue":${salaryMax},` : ""}"unitText":"MONTH"}},`;
-    }
-    const validThrough = expiresAt ? `"validThrough":"${eJ(expiresAt)}",` : "";
-    const jsonLd = `{"@context":"https://schema.org/","@type":"JobPosting","title":"${eJ(title)}","description":"${eJ(desc)}","datePosted":"${eJ(postedDate || new Date().toISOString())}",${validThrough}"employmentType":"${eJ(empType)}","hiringOrganization":{"@type":"Organization","name":"${eJ(posterName)}","logo":"${eJ(posterPic)}"},"jobLocation":{"@type":"Place","address":{"@type":"PostalAddress",
+  }
+  let waNumber = "";
+  if (whatsapp.trim()) {
+    waNumber = whatsapp.replace(/[^0-9]/g, "");
+    if (waNumber.startsWith("0")) waNumber = "92" + waNumber.substring(1);
+  }
+  const callNumber = localNum.trim();
+  const waMsg = encodeURIComponent(`Hi, I saw your post "${title}" on Health Jobs Portal and I am interested.`);
+  let mediaHtml = "";
+  if (media.length > 0) {
+    mediaHtml = '<div class="media-container">' + media.map((m) => {
+      if (m.type === "image") return `<div class="media-item"><img src="${e(m.url)}" alt="${e(title)}" loading="lazy" onclick="openLightbox('${e(m.url)}')" style="cursor:zoom-in;"></div>`;
+      if (m.type === "video") return `<div class="media-item"><video src="${e(m.url)}" controls preload="none" style="width:100%;border-radius:8px;border:1px solid var(--border-color);" poster="${e(ogImage)}"></video></div>`;
+      if (m.type === "pdf") return `<div class="media-item"><a href="${e(m.url)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;padding:12px 16px;background:#f0f7ff;border:1px solid #d0e1fd;border-radius:8px;text-decoration:none;color:#1967d2;font-size:14px;font-weight:600;"><svg width="16" height="16" viewBox="0 0 24 24" fill="#1967d2"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg> \u{1F4C4} ${e(m.name || "View Document")}</a></div>`;
+      return "";
+    }).join("") + "</div>";
+  }
+  const extLinkHtml = extLink.trim() ? `<div onclick="requireAuth(async function(){ await trackClick('${e(slug)}','linkClicks'); window.open('${e(extLink)}','_blank'); })" style="display:inline-flex;align-items:center;gap:8px;margin-top:10px;margin-bottom:5px;padding:10px 16px;background:#f0f7ff;border:1px solid #d0e1fd;border-radius:8px;text-decoration:none;color:#1967d2;font-size:14px;font-weight:600;cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="#1967d2"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>Apply Now</div>` : "";
+  const whatsappBtn = waNumber ? `<div class="circle-btn-wrapper" style="cursor:pointer;" onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','whatsappClicks'); window.open('https://wa.me/${e(waNumber)}?text=${waMsg}','_blank'); })"><div class="circle-btn btn-wa"><svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg></div><span class="btn-label">WhatsApp</span></div>` : "";
+  const callBtn = callNumber ? `<div class="circle-btn-wrapper" style="cursor:pointer;" onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','callClicks'); window.location.href='tel:${e(callNumber)}'; })"><div class="circle-btn btn-call"><svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg></div><span class="btn-label">Call</span></div>` : "";
+  const chatBtn = webChat && posterId ? `<div class="circle-btn-wrapper" style="cursor:pointer;" onclick="requireAuth(function(){ trackClick('${e(slug)}','chatClicks'); window.location.href='${SITE_URL}/chat.html?uid=${e(posterId)}'; })"><div class="circle-btn btn-chat"><svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg></div><span class="btn-label">Web Chat</span></div>` : "";
+  let baseSalaryLd = "";
+  if (salaryMin) {
+    baseSalaryLd = `"baseSalary":{"@type":"MonetaryAmount","currency":"PKR","value":{"@type":"QuantitativeValue","minValue":${salaryMin},${salaryMax ? `"maxValue":${salaryMax},` : ""}"unitText":"MONTH"}},`;
+  }
+  const validThrough = expiresAt ? `"validThrough":"${eJ(expiresAt)}",` : "";
+  const jsonLd = `{"@context":"https://schema.org/","@type":"JobPosting","title":"${eJ(title)}","description":"${eJ(desc)}","datePosted":"${eJ(postedDate || (/* @__PURE__ */ new Date()).toISOString())}",${validThrough}"employmentType":"${eJ(empType)}","hiringOrganization":{"@type":"Organization","name":"${eJ(posterName)}","logo":"${eJ(posterPic)}"},"jobLocation":{"@type":"Place","address":{"@type":"PostalAddress",
 "streetAddress":"${eJ(address)}",
 "addressLocality":"${eJ(city)}",
 "addressRegion":"${eJ(post.addressRegion || city)}",
-${city ? `"postalCode":"00000",` : ''}
+${city ? `"postalCode":"00000",` : ""}
 "addressCountry":"PK"}},${baseSalaryLd}"occupationalCategory":"${eJ(category)}","url":"${eJ(canonicalUrl)}"}`;
-
-    return `<!DOCTYPE html>
+  const faqHtml = await generateJobFaqHtml(title, category, city, tempDesc, env);
+  const faqSectionHtml = faqHtml ? `<div class="faq-section" id="faq-section">
+    <div class="faq-heading">
+        <svg viewBox="0 0 24 24"><path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"/></svg>
+        Frequently Asked Questions
+    </div>
+    <div class="faq-list" id="faq-list">${faqHtml}</div>
+</div>` : "";
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -990,7 +966,7 @@ ${city ? `"postalCode":"00000",` : ''}
 <title>${e(pageTitle)}</title>
 <meta name="description" content="${e(metaDesc)}">
 <meta name="keywords" content="${e(category)}, healthcare jobs Pakistan, ${e(city)} jobs, medical jobs">
-<meta name="robots" content="${tempDesc.length < 100 ? 'noindex, follow' : 'index, follow, max-snippet:-1, max-image-preview:large'}">
+<meta name="robots" content="${tempDesc.length < 100 ? "noindex, follow" : "index, follow, max-snippet:-1, max-image-preview:large"}">
 <link rel="canonical" href="${e(canonicalUrl)}">
 <meta property="og:type" content="article">
 <meta property="og:url" content="${e(canonicalUrl)}">
@@ -1068,7 +1044,7 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
 .report-submit:hover{background:#dc2626;}
 .report-success{text-align:center;padding:10px 0;font-size:14px;color:#16a34a;font-weight:600;display:none;}
 
-/* ── Related Jobs Section ── */
+/* \u2500\u2500 Related Jobs Section \u2500\u2500 */
 .related-section{margin-top:14px;margin-bottom:6px;background:var(--bg-white);border-radius:12px;border:1px solid var(--border-color);padding:20px;box-shadow:0 2px 4px rgba(0,0,0,0.02);}
 .related-heading{font-size:15px;font-weight:800;color:var(--text-main);margin-bottom:12px;display:flex;align-items:center;gap:7px;}
 .related-heading svg{width:18px;height:18px;fill:var(--primary-blue);}
@@ -1086,7 +1062,7 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
 .related-skeleton{background:#f1f5f9;border-radius:12px;height:92px;animation:shimmer 1.2s infinite linear;background:linear-gradient(90deg,#f1f5f9 25%,#e8edf4 50%,#f1f5f9 75%);background-size:200% 100%;}
 @keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
 
-/* ── Related Questions (FAQ) Section ── */
+/* \u2500\u2500 Related Questions (FAQ) Section \u2500\u2500 */
 .faq-section{margin-top:14px;margin-bottom:6px;background:var(--bg-white);border-radius:12px;border:1px solid var(--border-color);padding:20px;box-shadow:0 2px 4px rgba(0,0,0,0.02);}
 
 .ai-chat-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9998;display:none;}
@@ -1138,15 +1114,12 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
 .ai-chat-inputbar button:disabled{opacity:.5;cursor:not-allowed;}
 .faq-heading{font-size:15px;font-weight:800;color:var(--text-main);margin-bottom:12px;display:flex;align-items:center;gap:7px;}
 .faq-heading svg{width:18px;height:18px;fill:var(--primary-blue);}
-.faq-list{display:flex;flex-direction:column;gap:8px;}
-.faq-skeleton{background:#f1f5f9;border-radius:10px;height:46px;animation:shimmer 1.2s infinite linear;background:linear-gradient(90deg,#f1f5f9 25%,#e8edf4 50%,#f1f5f9 75%);background-size:200% 100%;}
-.faq-item{border:1px solid var(--border-color);border-radius:10px;background:var(--bg-white);overflow:hidden;}
-.faq-question{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--text-main);}
-.faq-question .faq-chevron{width:16px;height:16px;flex-shrink:0;transition:transform 0.2s;color:#94a3b8;}
-.faq-item.open .faq-question .faq-chevron{transform:rotate(180deg);}
-.faq-answer{max-height:0;overflow:hidden;transition:max-height 0.25s ease;}
-.faq-answer-inner{padding:0 14px 14px;font-size:13px;color:var(--text-secondary);line-height:1.6;}
-.faq-answer-skeleton{height:12px;border-radius:6px;margin-bottom:6px;background:linear-gradient(90deg,#f1f5f9 25%,#e8edf4 50%,#f1f5f9 75%);background-size:200% 100%;animation:shimmer 1.2s infinite linear;}
+.faq-list{display:flex;flex-direction:column;gap:14px;}
+.faq-static-item{border-bottom:1px solid var(--border-color);padding-bottom:12px;}
+.faq-static-item:last-child{border-bottom:none;padding-bottom:0;}
+.faq-static-q{font-size:13.5px;font-weight:700;color:var(--text-main);margin:0 0 4px;line-height:1.5;}
+.faq-static-q a{color:var(--primary-blue);text-decoration:underline;}
+.faq-static-a{font-size:13px;color:var(--text-secondary);line-height:1.6;margin:0;}
 .expiry-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;margin-bottom:10px;}
 .expiry-countdown{background:#fff0f0;color:#dc2626;border:1px solid #fecaca;}
 .expiry-expired{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;}
@@ -1223,7 +1196,7 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
             <div class="user-name">
                 ${e(posterName)}
                 <span class="role-badge ${badgeClass}">${roleText}</span>
-                ${verified ? '<span style="display:inline-flex;align-items:center;justify-content:center;background:#0a66c2;border-radius:50%;width:18px;height:18px;margin-left:2px;border:2px solid #fff;flex-shrink:0;"><svg viewBox=\"0 0 24 24\" width=\"10\" fill=\"white\"><path d=\"M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z\"/></svg></span>' : ''}
+                ${verified ? '<span style="display:inline-flex;align-items:center;justify-content:center;background:#0a66c2;border-radius:50%;width:18px;height:18px;margin-left:2px;border:2px solid #fff;flex-shrink:0;"><svg viewBox="0 0 24 24" width="10" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>' : ""}
             </div>
             <div class="post-time">${e(city)} &bull; Posted on ${formattedDate}</div>
         </div>
@@ -1266,7 +1239,7 @@ ${expiresAt ? `<div id="expiry-badge-wrap"></div>` : ""}
             </tr>
             <tr>
                 <td class="jdt-label">Employment Type</td>
-                <td class="jdt-value">${e(empType.replace(/_/g," "))}</td>
+                <td class="jdt-value">${e(empType.replace(/_/g, " "))}</td>
             </tr>
             ${expiresAt ? `<tr><td class="jdt-label">Deadline</td><td class="jdt-value">${e(expiresAt)}</td></tr>` : ""}
         </tbody>
@@ -1287,7 +1260,7 @@ ${expiresAt ? `<div id="expiry-badge-wrap"></div>` : ""}
 
 ${extLinkHtml}
 ${isEmployer ? `<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:14px 16px;margin:14px 0;display:flex;align-items:center;gap:12px;">
-  <span style="font-size:26px;">⚠️</span>
+  <span style="font-size:26px;">\u26A0\uFE0F</span>
   <div>
     <div style="font-size:13px;font-weight:800;color:#9a3412;margin-bottom:3px;">Stay Safe From Job Fraud</div>
     <div style="font-size:12px;color:#c2410c;line-height:1.55;">Please contact this employer carefully and never pay any money to apply for or accept a job. Health Jobs Portal is not responsible for any fraud, scam, or financial loss related to this post.</div>
@@ -1295,7 +1268,7 @@ ${isEmployer ? `<div style="background:#fff7ed;border:1px solid #fed7aa;border-r
 </div>` : ""}
 <!-- CV Maker Promo Note -->
 <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px 16px;margin:14px 0;display:flex;align-items:center;gap:12px;">
-  <span style="font-size:28px;">📄</span>
+  <span style="font-size:28px;">\u{1F4C4}</span>
   <div>
     <div style="font-size:13px;font-weight:700;color:#166534;margin-bottom:3px;">Don't have a CV yet?</div>
     <div style="font-size:12px;color:#15803d;line-height:1.5;">Create a professional CV for free - Click on <a href="https://healthjobportal.com/cv-maker.html" style="color:#166534;font-weight:800;text-decoration:underline;">CV Maker</a></div>
@@ -1303,8 +1276,8 @@ ${isEmployer ? `<div style="background:#fff7ed;border:1px solid #fed7aa;border-r
 </div>
 <!-- Share Buttons Row -->
 <div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;">
-${whatsapp ? `<div onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','whatsappClicks'); window.open('https://wa.me/${waNumber}?text=${waMsg}','_blank'); })" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#25D366;color:white;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>WhatsApp</div>` : ''}
-${callNumber ? `<div onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','callClicks'); window.location.href='tel:${e(callNumber)}'; })"style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#0078FF;color:white;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>Call</div>` : ''}
+${whatsapp ? `<div onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','whatsappClicks'); window.open('https://wa.me/${waNumber}?text=${waMsg}','_blank'); })" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#25D366;color:white;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>WhatsApp</div>` : ""}
+${callNumber ? `<div onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','callClicks'); window.location.href='tel:${e(callNumber)}'; })"style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#0078FF;color:white;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>Call</div>` : ""}
 <div onclick="openReportPopup()" style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;background:#fff0f0;color:#ef4444;border:1px solid #fecaca;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;"><svg width="12" height="12" viewBox="0 0 24 24" fill="#ef4444"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>Report</div>
 </div>
 
@@ -1318,9 +1291,9 @@ ${city ? `
         Location
     </div>
     <div style="position:relative;width:100%;padding-top:50%;border-radius:12px;overflow:hidden;border:1px solid var(--border-color);cursor:pointer;"
-         onclick="window.open('https://www.google.com/maps/search/${encodeURIComponent(address + ', ' + city + ', Pakistan')}','_blank')">
+         onclick="window.open('https://www.google.com/maps/search/${encodeURIComponent(address + ", " + city + ", Pakistan")}','_blank')">
         <iframe
-            src="https://maps.google.com/maps?q=${encodeURIComponent(address + ', ' + city + ', Pakistan')}&output=embed&z=13"
+            src="https://maps.google.com/maps?q=${encodeURIComponent(address + ", " + city + ", Pakistan")}&output=embed&z=13"
             style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;pointer-events:none;"
             loading="lazy"
             allowfullscreen
@@ -1332,7 +1305,7 @@ ${city ? `
         </div>
     </div>
     <div style="font-size:12px;color:var(--text-secondary);margin-top:7px;font-weight:600;">
-        📍 ${e(address || city)}, Pakistan
+        \u{1F4CD} ${e(address || city)}, Pakistan
     </div>
 </div>
 ` : ""}
@@ -1373,22 +1346,10 @@ ${city ? `
 
 
 <div class="sidebar-col">
-<!-- ── Frequently Asked Questions Section ─────────────────────────────── -->
-<div class="faq-section" id="faq-section">
-    <div class="faq-heading">
-        <svg viewBox="0 0 24 24"><path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"/></svg>
-        Frequently Asked Questions
-    </div>
-    <div class="faq-list" id="faq-list">
-        <div class="faq-skeleton"></div>
-        <div class="faq-skeleton"></div>
-        <div class="faq-skeleton"></div>
-        <div class="faq-skeleton"></div>
-        <div class="faq-skeleton"></div>
-    </div>
-</div>
+<!-- \u2500\u2500 Frequently Asked Questions Section \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 -->
+${faqSectionHtml}
 
-<!-- ── Ask AI full-screen chat modal ────────────────────────────────────── -->
+<!-- \u2500\u2500 Ask AI full-screen chat modal \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 -->
 <div class="ai-chat-overlay" id="ai-chat-overlay" onclick="closeAiChat()"></div>
 <div class="ai-chat-modal" id="ai-chat-modal">
     <div class="ai-chat-header">
@@ -1407,7 +1368,7 @@ ${city ? `
         <button id="ai-chat-send" onclick="aiChatSend()">Send</button>
     </div>
 </div>
-<!-- ── Related Jobs Section ──────────────────────────────────────────── -->
+<!-- \u2500\u2500 Related Jobs Section \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 -->
 <div class="related-section">
     <div class="related-heading">
         <svg viewBox="0 0 24 24"><path d="M20 6h-2.18c.07-.44.18-.88.18-1.5C18 2.46 15.54 0 12.5 0S7 2.46 7 4.5c0 .62.11 1.06.18 1.5H5C3.9 6 3 6.9 3 8v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zM12.5 2C14.43 2 16 3.57 16 5.5c0 .62-.13 1.03-.18 1.5h-6.64c-.05-.47-.18-.88-.18-1.5C9 3.57 10.57 2 12.5 2zM19 20H5V8h14v12z"/></svg>
@@ -1568,7 +1529,7 @@ window.doLike = async function() {
     } catch(e) {}
 };
 
-// ── Context Menu ──────────────────────────────────────────────────
+// \u2500\u2500 Context Menu \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 window.closeCmtCtxMenu = function() {
     const m = document.getElementById('cmt-ctx-global');
     if (m) m.remove();
@@ -1598,7 +1559,7 @@ menu.style.top  = top + 'px';
     setTimeout(() => document.addEventListener('click', window.closeCmtCtxMenu, { once: true }), 50);
 }
 
-// ── Comment Reactions ─────────────────────────────────────────────
+// \u2500\u2500 Comment Reactions \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 window.toggleCmtReaction = async function(cid, type) {
     if (!currentUser) { sessionStorage.setItem('redirectAfterLogin', window.location.href); window.location.replace("https://healthjobportal.com/login.html"); return; }
     const uid = currentUser.uid;
@@ -1637,7 +1598,7 @@ window.toggleCmtReaction = async function(cid, type) {
     } catch(e) {}
 };
 
-// ── Reply Box ─────────────────────────────────────────────────────
+// \u2500\u2500 Reply Box \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 window.showReplyBox = function(parentCid, toName) {
     document.querySelectorAll('.reply-input-row').forEach(b => b.remove());
     const row = document.createElement('div');
@@ -1670,7 +1631,7 @@ window.sendReply = async function(parentCid) {
     } catch(e) { inp.disabled = false; }
 };
 
-// ── Toggle Replies ────────────────────────────────────────────────
+// \u2500\u2500 Toggle Replies \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 window.toggleReplies = function(parentCid) {
     const list = document.getElementById('replies-list-' + parentCid);
     const btn  = document.getElementById('replies-toggle-' + parentCid);
@@ -1680,7 +1641,7 @@ window.toggleReplies = function(parentCid) {
     btn.classList.toggle('open', !isOpen);
 };
 
-// ── Build Comment Element ─────────────────────────────────────────
+// \u2500\u2500 Build Comment Element \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 function buildCmtEl(c, isReply) {
     const isMe   = !!(currentUser && c.userId === currentUser.uid);
     const myUid  = currentUser?.uid || '';
@@ -1718,7 +1679,7 @@ function buildCmtEl(c, isReply) {
                     <span id="dcount-\${c.id}">\${dCount > 0 ? dCount : ''}</span>
                 </button>
                 \${!isReply ? \`<button class="cmt-reply-btn" onclick="window.showReplyBox('\${c.id}','\${escHtml(c.userName||'User')}')">Reply</button>\` : ''}
-                \${isMe ? \`<button class="cmt-3dot" onclick="event.stopPropagation();showCmtCtxMenu(event,'\${c.id}',true)">···</button>\` : ''}
+                \${isMe ? \`<button class="cmt-3dot" onclick="event.stopPropagation();showCmtCtxMenu(event,'\${c.id}',true)">\xB7\xB7\xB7</button>\` : ''}
             </div>
         </div>\`;
 
@@ -1731,7 +1692,7 @@ function buildCmtEl(c, isReply) {
     return wrap;
 }
 
-// ── Load Comments ─────────────────────────────────────────────────
+// \u2500\u2500 Load Comments \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 function loadComments() {
     const cmtList = document.getElementById('cmt-list');
     const countEl = document.getElementById('cmt-count-display');
@@ -1927,8 +1888,8 @@ async function loadRelatedUpdates() {
                 <div class="rel-info">
                     <div class="rel-title">\${(p.title||p.desc||'').replace(/</g,'&lt;')}</div>
                     <div class="rel-meta">
-                        <span class="rel-badge">🩺 Update</span>
-                        \${p.location ? '<span>📍 '+p.location+'</span>' : ''}
+                        <span class="rel-badge">\u{1FA7A} Update</span>
+                        \${p.location ? '<span>\u{1F4CD} '+p.location+'</span>' : ''}
                     </div>
                 </div>
                 <svg class="rel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
@@ -1955,10 +1916,9 @@ async function trackView(postId) {
 window.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => trackView(${JSON.stringify(slug)}), 2000);
     loadRelatedJobs();
-    loadFaqQuestions();
 });
 
-// ── Related Jobs Loader ──────────────────────────────────────────────────────
+// \u2500\u2500 Related Jobs Loader \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 async function loadRelatedJobs() {
     const grid = document.getElementById('related-jobs-grid');
     if (!grid) return;
@@ -1997,7 +1957,7 @@ async function loadRelatedJobs() {
                     <div class="related-title">\${p.title.replace(/</g,'&lt;')}</div>
                     <div class="related-meta">
                         <span class="related-badge \${isEmp?'emp':'cnd'}">\${isEmp?'Hiring':'Candidate'}</span>
-                        \${p.location?'<span>📍 '+p.location+'</span>':""}
+                        \${p.location?'<span>\u{1F4CD} '+p.location+'</span>':""}
                         \${p.salary?'<span>&middot; '+p.salary+'</span>':""}
                     </div>
                 </div>
@@ -2010,21 +1970,23 @@ async function loadRelatedJobs() {
     }
 }
 
-// ── Related Questions (FAQ) ───────────────────────────────────────────────
-window._faqApiUrl = '${FAQ_CHAT_API_URL}';
+// \u2500\u2500 Related Questions (FAQ) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 window._aiChatApiUrl = '/api/ai-chat';
 window._faqPostTitle  = ${JSON.stringify(title)};
-window._faqPostDesc   = ${JSON.stringify(desc.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 500))};
-window._faqQuestions  = [];
 
 // Fuller context used ONLY by the "Ask AI about this job" widget, so it can
 // answer from the complete post details rather than a short FAQ snippet.
-window._aiChatFullDesc  = ${JSON.stringify(desc.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 4000))};
-window._aiChatApplyLink = ${JSON.stringify(extLink || '')};
+window._aiChatFullDesc  = ${JSON.stringify(desc.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().substring(0, 4e3))};
+window._aiChatApplyLink = ${JSON.stringify(extLink || "")};
 window._aiChatJobFacts  = ${JSON.stringify({
-    category, city, salary, shift, experience,
-    employmentType: empType, deadline: expiresAt || ''
-})};
+    category,
+    city,
+    salary,
+    shift,
+    experience,
+    employmentType: empType,
+    deadline: expiresAt || ""
+  })};
 
 function aiChatBuildContext() {
     var f = window._aiChatJobFacts || {};
@@ -2045,44 +2007,11 @@ function aiChatBuildContext() {
     ].filter(function(l){ return l !== ''; });
     return lines.join(String.fromCharCode(10)) + String.fromCharCode(10);
 }
-window._faqCache      = {};
-
-function faqBuildContext() {
-    return 'Post title: "' + window._faqPostTitle + '"\\nPost description: "' + window._faqPostDesc + '"\\n\\n';
-}
-
-function faqParseQuestionsReply(text) {
-    try {
-        var t = String(text || '').trim();
-        // Strip markdown code fences WITHOUT regex backslashes (avoids
-        // backslash-loss when this script is embedded in nested template
-        // literals during deployment).
-        var fence = String.fromCharCode(96, 96, 96); // three backtick chars, built via code so none appear literally in this source
-        if (t.slice(0, 7).toLowerCase() === fence + 'json') t = t.slice(7);
-        else if (t.slice(0, 3) === fence) t = t.slice(3);
-        if (t.slice(-3) === fence) t = t.slice(0, -3);
-        t = t.trim();
-
-        // Extract the JSON array by locating the first '[' and last ']'
-        // instead of a regex, so there is nothing here that can be broken
-        // by escaping issues.
-        var start = t.indexOf('[');
-        var end = t.lastIndexOf(']');
-        var jsonStr = (start !== -1 && end !== -1 && end > start) ? t.substring(start, end + 1) : t;
-
-        var arr = JSON.parse(jsonStr);
-        var out = Array.isArray(arr) ? arr.filter(function(q){ return typeof q === 'string' && q.trim(); }).map(function(q){ return q.trim(); }) : [];
-        return out;
-    } catch(e) {
-        return [];
-    }
-}
-
 async function faqAskChat(prompt, targetUrl) {
     var controller = new AbortController();
     var timer = setTimeout(function(){ controller.abort(); }, 25000);
     try {
-        var res = await fetch(targetUrl || window._faqApiUrl, {
+        var res = await fetch(targetUrl || window._aiChatApiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ prompt: prompt }),
@@ -2105,7 +2034,7 @@ async function faqAskChat(prompt, targetUrl) {
     }
 }
 
-// ── Ask AI full-screen chat ─────────────────────────────────────────────
+// \u2500\u2500 Ask AI full-screen chat \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 window._aiChatHistory = [];
 window._aiChatBusy = false;
 
@@ -2118,7 +2047,7 @@ function openAiChat() {
     document.body.style.overflow = 'hidden';
     var msgBox = document.getElementById('ai-chat-messages');
     if (msgBox && !msgBox.children.length && !window._aiChatHistory.length) {
-        aiChatAppendMessage('bot', 'Assalam-o-Alaikum! Ask me anything about this job post — eligibility, how to apply, last date, salary, or any other detail mentioned in the post.');
+        aiChatAppendMessage('bot', 'Assalam-o-Alaikum! Ask me anything about this job post \u2014 eligibility, how to apply, last date, salary, or any other detail mentioned in the post.');
     }
     var input = document.getElementById('ai-chat-input');
     if (input) setTimeout(function(){ input.focus(); }, 150);
@@ -2194,7 +2123,7 @@ function aiChatInline(s) {
     var SP = String.fromCharCode(32);
     var TAB = String.fromCharCode(9);
 
-    // Markdown-style [label](url) links, and bare http/https URLs — handled
+    // Markdown-style [label](url) links, and bare http/https URLs \u2014 handled
     // together so a URL never gets linkified twice.
     var linkRe = new RegExp('[[](.+?)][(](.+?)[)]' + '|' + '(https?://[^' + SP + TAB + '<]+)', 'g');
     text = text.replace(linkRe, function (match, label, url, rawUrl) {
@@ -2233,8 +2162,8 @@ function aiChatAppendMessage(role, text, isLoading) {
         var mapUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(jobCity);
 
         div.innerHTML = aiChatRenderMarkdown(cleanText) +
-            (hasApply ? '<a class="ai-chat-apply-btn" href="' + aiChatEscapeHtml(applyLink) + '" target="_blank" rel="noopener">Apply Now →</a>' : '') +
-            (hasMap ? '<a class="ai-chat-map-btn" href="' + aiChatEscapeHtml(mapUrl) + '" target="_blank" rel="noopener">📍 View on Map</a>' : '');
+            (hasApply ? '<a class="ai-chat-apply-btn" href="' + aiChatEscapeHtml(applyLink) + '" target="_blank" rel="noopener">Apply Now \u2192</a>' : '') +
+            (hasMap ? '<a class="ai-chat-map-btn" href="' + aiChatEscapeHtml(mapUrl) + '" target="_blank" rel="noopener">\u{1F4CD} View on Map</a>' : '');
 
         aiChatAttachCopyButtons(div);
     }
@@ -2277,7 +2206,7 @@ function aiChatHasDevanagari(s) {
     var text = String(s || '');
     for (var i = 0; i < text.length; i++) {
         var code = text.charCodeAt(i);
-        if (code >= 2304 && code <= 2431) return true; // U+0900–U+097F Devanagari block
+        if (code >= 2304 && code <= 2431) return true; // U+0900\u2013U+097F Devanagari block
     }
     return false;
 }
@@ -2296,7 +2225,7 @@ async function aiChatSend() {
     window._aiChatHistory.push({ role: 'user', text: question });
     var loadingEl = aiChatAppendMessage('bot', 'Typing...', true);
     var statusEl = document.getElementById('ai-chat-status');
-    if (statusEl) { statusEl.textContent = 'typing…'; statusEl.classList.add('typing'); }
+    if (statusEl) { statusEl.textContent = 'typing\u2026'; statusEl.classList.add('typing'); }
 
     var NL = String.fromCharCode(10);
     var historyText = window._aiChatHistory.slice(-8).map(function(m){
@@ -2305,10 +2234,10 @@ async function aiChatSend() {
 
     var prompt = aiChatBuildContext() +
         'You are answering questions ONLY about the specific job post above. ' +
-        'Do not answer questions unrelated to this job post — politely say you can only help with questions about this job post. ' +
+        'Do not answer questions unrelated to this job post \u2014 politely say you can only help with questions about this job post. ' +
         'Base every answer only on the information given above.' + NL +
         "Language rule: reply in the SAME language and script as the visitor's latest message below. " +
-        'If the visitor wrote in Urdu script, reply ENTIRELY in Urdu script (اردو). ' +
+        'If the visitor wrote in Urdu script, reply ENTIRELY in Urdu script (\u0627\u0631\u062F\u0648). ' +
         'If the visitor wrote in English, reply ENTIRELY in English. ' +
         'Never use Hindi/Devanagari script, and never mix two scripts or languages in the same reply.' + NL +
         'Formatting rule: for short answers just write plain sentences. ' +
@@ -2316,7 +2245,7 @@ async function aiChatSend() {
         'structure it clearly using markdown: short "## " headings for each section and "- " bullet points or "1. " numbered ' +
         'steps for lists, the same way ChatGPT formats a detailed answer. Keep each bullet short and scannable.' + NL +
         'Button rule: if your answer explains how to apply, is about applying, or the visitor asks how to apply, ' +
-        'put the exact text [[APPLY_BUTTON]] on its own at the point where they would click to apply — do not describe a link, just place that marker. ' +
+        'put the exact text [[APPLY_BUTTON]] on its own at the point where they would click to apply \u2014 do not describe a link, just place that marker. ' +
         'If your answer mentions or is about the job location/city and the visitor is asking where it is, put the exact text [[MAP_BUTTON]] ' +
         'on its own right after mentioning the location. Only use these two markers, exactly as written, and only when relevant.' + NL + NL +
         'Conversation so far:' + NL + historyText + NL + NL +
@@ -2329,7 +2258,7 @@ async function aiChatSend() {
         // once more to rewrite the same answer purely in Urdu script.
         if (aiChatHasDevanagari(reply)) {
             var fixPrompt = 'Rewrite the following answer so it says exactly the same thing, ' +
-                'but written ENTIRELY in pure Urdu script (اردو). ' +
+                'but written ENTIRELY in pure Urdu script (\u0627\u0631\u062F\u0648). ' +
                 'Do not use any Hindi/Devanagari letters anywhere, and do not mix any other script or language into it. ' +
                 'Return only the rewritten answer, nothing else.' + NL + NL +
                 'Answer to rewrite:' + NL + reply;
@@ -2354,107 +2283,6 @@ async function aiChatSend() {
         if (sendBtn) sendBtn.disabled = false;
         if (statusEl) { statusEl.textContent = 'Online'; statusEl.classList.remove('typing'); }
     }
-}
-
-async function loadFaqQuestions(attempt) {
-    attempt = attempt || 1;
-    var list = document.getElementById('faq-list');
-    if (!list) return;
-    try {
-        var prompt = faqBuildContext() +
-            'Generate exactly 5 short FAQ questions a visitor might ask about this job post. ' +
-            'Return ONLY a JSON array of 5 question strings, no markdown, no extra text.';
-        var reply = await faqAskChat(prompt);
-        window._faqQuestions = faqParseQuestionsReply(reply).slice(0, 5);
-
-        if (!window._faqQuestions.length) {
-            throw new Error('Empty FAQ list from API');
-        }
-
-        list.innerHTML = window._faqQuestions.map(function(q, i) {
-            var safeQ = String(q).replace(/</g, '&lt;');
-            return '<div class="faq-item" id="faq-item-' + i + '">' +
-                '<div class="faq-question" onclick="toggleFaqItem(' + i + ')">' +
-                '<span>' + safeQ + '</span>' +
-                '<svg class="faq-chevron" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>' +
-                '</div>' +
-                '<div class="faq-answer" id="faq-answer-' + i + '">' +
-                '<div class="faq-answer-inner" id="faq-answer-inner-' + i + '"></div>' +
-                '</div>' +
-                '</div>';
-        }).join('');
-    } catch(err) {
-        console.log('FAQ questions error (attempt ' + attempt + '):', err);
-        // Retry a couple of times before giving up — the FAQ backend can be
-        // slow to wake up or briefly time out, so one failed attempt should
-        // not permanently remove the section after the user has already
-        // seen the loading skeletons.
-        if (attempt < 3) {
-            setTimeout(function() { loadFaqQuestions(attempt + 1); }, 1500 * attempt);
-            return;
-        }
-        var sec = document.getElementById('faq-section');
-        if (sec) sec.remove();
-    }
-}
-
-window.toggleFaqItem = async function(i) {
-    var item   = document.getElementById('faq-item-' + i);
-    var answer = document.getElementById('faq-answer-' + i);
-    var inner  = document.getElementById('faq-answer-inner-' + i);
-    if (!item || !answer || !inner) return;
-    var isOpen = item.classList.contains('open');
-
-    document.querySelectorAll('.faq-item.open').forEach(function(el) {
-        if (el !== item) {
-            el.classList.remove('open');
-            el.querySelector('.faq-answer').style.maxHeight = '0px';
-        }
-    });
-
-    if (isOpen) {
-        item.classList.remove('open');
-        answer.style.maxHeight = '0px';
-        setTimeout(repositionWaButton, 260);
-        return;
-    }
-
-    item.classList.add('open');
-
-    if (window._faqCache[i]) {
-        inner.innerHTML = window._faqCache[i];
-        answer.style.maxHeight = answer.scrollHeight + 'px';
-        setTimeout(repositionWaButton, 260);
-        return;
-    }
-
-    inner.innerHTML = '<div class="faq-answer-skeleton" style="width:95%"></div><div class="faq-answer-skeleton" style="width:80%"></div><div class="faq-answer-skeleton" style="width:55%"></div>';
-    answer.style.maxHeight = '90px';
-    setTimeout(repositionWaButton, 260);
-
-    try {
-        var question = window._faqQuestions[i] || '';
-        var prompt = faqBuildContext() +
-            'Question: "' + question + '"\\n\\n' +
-            'Answer this question briefly and helpfully for a visitor of the Health Jobs Portal.';
-        var reply = await faqAskChat(prompt);
-        var safe = String(reply || 'Sorry, no answer is available right now.').replace(/</g, '&lt;');
-        window._faqCache[i] = safe;
-        inner.innerHTML = safe;
-    } catch(err) {
-        inner.innerHTML = 'Could not load the answer. Please try again.';
-        console.log('FAQ answer error:', err);
-    } finally {
-        answer.style.maxHeight = answer.scrollHeight + 'px';
-        setTimeout(repositionWaButton, 260);
-    }
-};
-
-// WhatsApp floating button now stays fixed in place at all times —
-// it no longer follows the open FAQ answer box.
-function repositionWaButton() {
-    // intentionally left as a no-op; FAQ accordion open/close no longer
-    // moves the WhatsApp button.
 }
 
 const REPORT_DATA = {
@@ -2558,123 +2386,107 @@ async function submitReport(){
 </body>
 </html>`;
 }
-
-// ── General Update Page Builder ───────────────────────────────────────────────
+__name(buildPostPage, "buildPostPage");
 function buildUpdatePage(post, slug, verified = false) {
-    const e  = s => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-    const eJ = s => String(s ?? "").replace(/\\/g,"\\\\").replace(/"/g,'\\"').replace(/\n/g,"\\n");
-    const nl = s => e(s).replace(/\n/g,"<br>");
-
-    const title      = post.title      || "Medical Update";
-    const desc       = post.desc       || "";
-    const posterName = post.posterName || SITE_NAME;
-    const posterPic  = post.posterPic  || `https://ui-avatars.com/api/?name=${encodeURIComponent(posterName)}&background=0a66c2&color=fff`;
-    const posterId   = post.posterId   || "";
-    const city       = post.location   || "Pakistan";
-    const extLink    = post.externalLink || "";
-    const postedDate = post.postedDateISO || post.createdAt || "";
-    const media      = Array.isArray(post.media) ? post.media : [];
-    const canonicalUrl = `${SITE_URL}/updates/${slug}`;
-    const postDocId = post._docId || slug;
-
-    const pageTitle = title
-        ? `${title} | ${SITE_NAME}`
-        : `Medical Update by ${posterName} | ${SITE_NAME}`;
-    const tempDesc = desc.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-
-const metaDesc = tempDesc.substring(0, 157) + (tempDesc.length > 157 ? "..." : "");
-    const ogImage   = media.find(m => m.type === "image")?.url || posterPic || FALLBACK_IMG;
-
-    let formattedDate = "Recently";
-    if (postedDate) {
-        try {
-            formattedDate = new Date(postedDate).toLocaleDateString("en-US", {
-                day: "numeric", month: "short", year: "numeric"
-            });
-        } catch(_) {}
+  const e = /* @__PURE__ */ __name((s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"), "e");
+  const eJ = /* @__PURE__ */ __name((s) => String(s ?? "").replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n"), "eJ");
+  const nl = /* @__PURE__ */ __name((s) => e(s).replace(/\n/g, "<br>"), "nl");
+  const title = post.title || "Medical Update";
+  const desc = post.desc || "";
+  const posterName = post.posterName || SITE_NAME;
+  const posterPic = post.posterPic || `https://ui-avatars.com/api/?name=${encodeURIComponent(posterName)}&background=0a66c2&color=fff`;
+  const posterId = post.posterId || "";
+  const city = post.location || "Pakistan";
+  const extLink = post.externalLink || "";
+  const postedDate = post.postedDateISO || post.createdAt || "";
+  const media = Array.isArray(post.media) ? post.media : [];
+  const canonicalUrl = `${SITE_URL}/updates/${slug}`;
+  const postDocId = post._docId || slug;
+  const pageTitle = title ? `${title} | ${SITE_NAME}` : `Medical Update by ${posterName} | ${SITE_NAME}`;
+  const tempDesc = desc.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  const metaDesc = tempDesc.substring(0, 157) + (tempDesc.length > 157 ? "..." : "");
+  const ogImage = media.find((m) => m.type === "image")?.url || posterPic || FALLBACK_IMG;
+  let formattedDate = "Recently";
+  if (postedDate) {
+    try {
+      formattedDate = new Date(postedDate).toLocaleDateString("en-US", {
+        day: "numeric",
+        month: "short",
+        year: "numeric"
+      });
+    } catch (_) {
     }
-
-    const specialties = ["Internal Medicine","Emergency Medicine","General Practice","Healthcare News"];
-const jsonLd = JSON.stringify({
+  }
+  const specialties = ["Internal Medicine", "Emergency Medicine", "General Practice", "Healthcare News"];
+  const jsonLd = JSON.stringify({
     "@context": "https://schema.org/",
     "@graph": [
-        {
-            "@type": ["NewsArticle", "MedicalWebPage"],
-            "headline": title || desc.substring(0, 110),
-            "description": metaDesc,
-            "datePublished": postedDate || new Date().toISOString(),
-            "dateModified": postedDate || new Date().toISOString(),
-            "author": {
-                "@type": "Person",
-                "name": posterName,
-                "image": posterPic
-            },
-            "publisher": {
-                "@type": "Organization",
-                "name": SITE_NAME,
-                "logo": {
-                    "@type": "ImageObject",
-                    "url": FALLBACK_IMG
-                }
-            },
-            "image": {
-                "@type": "ImageObject",
-                "url": ogImage,
-                "width": 1200,
-                "height": 630
-            },
-            "url": canonicalUrl,
-            "mainEntityOfPage": {
-                "@type": "WebPage",
-                "@id": canonicalUrl
-            },
-            "articleSection": "Medical News",
-            "keywords": "medical news Pakistan, healthcare update, clinical update, " + posterName + ", " + city,
-            "about": {
-                "@type": "MedicalCondition",
-                "name": title || "Medical Update"
-            },
-            "specialty": {
-                "@type": "MedicalSpecialty",
-                "name": "General Practice"
-            },
-            "medicalAudience": {
-                "@type": "MedicalAudience",
-                "audienceType": "Clinician"
-            },
-            "inLanguage": "en-PK",
-            "isAccessibleForFree": true
-        }
+      {
+        "@type": ["NewsArticle", "MedicalWebPage"],
+        "headline": title || desc.substring(0, 110),
+        "description": metaDesc,
+        "datePublished": postedDate || (/* @__PURE__ */ new Date()).toISOString(),
+        "dateModified": postedDate || (/* @__PURE__ */ new Date()).toISOString(),
+        "author": {
+          "@type": "Person",
+          "name": posterName,
+          "image": posterPic
+        },
+        "publisher": {
+          "@type": "Organization",
+          "name": SITE_NAME,
+          "logo": {
+            "@type": "ImageObject",
+            "url": FALLBACK_IMG
+          }
+        },
+        "image": {
+          "@type": "ImageObject",
+          "url": ogImage,
+          "width": 1200,
+          "height": 630
+        },
+        "url": canonicalUrl,
+        "mainEntityOfPage": {
+          "@type": "WebPage",
+          "@id": canonicalUrl
+        },
+        "articleSection": "Medical News",
+        "keywords": "medical news Pakistan, healthcare update, clinical update, " + posterName + ", " + city,
+        "about": {
+          "@type": "MedicalCondition",
+          "name": title || "Medical Update"
+        },
+        "specialty": {
+          "@type": "MedicalSpecialty",
+          "name": "General Practice"
+        },
+        "medicalAudience": {
+          "@type": "MedicalAudience",
+          "audienceType": "Clinician"
+        },
+        "inLanguage": "en-PK",
+        "isAccessibleForFree": true
+      }
     ]
-});
-
-    let mediaHtml = "";
-    if (media.length > 0) {
-        mediaHtml = '<div class="media-container">' + media.map(m => {
-if (m.type === "image") return `<div class="media-item"><img src="${e(m.url)}" alt="${e(title || posterName)}" loading="lazy" onclick="openLightbox('${e(m.url)}')" style="cursor:zoom-in;"></div>`;
-            if (m.type === "video") return `<div class="media-item"><video src="${e(m.url)}" controls preload="none" style="width:100%;border-radius:8px;border:1px solid var(--border-color);" poster="${e(ogImage)}"></video></div>`;
-            if (m.type === "pdf")   return `<div class="media-item"><a href="${e(m.url)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;padding:12px 16px;background:#f0f7ff;border:1px solid #d0e1fd;border-radius:8px;text-decoration:none;color:#1967d2;font-size:14px;font-weight:600;"><svg width="16" height="16" viewBox="0 0 24 24" fill="#1967d2"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg> 📄 ${e(m.name || "View Document")}</a></div>`;
-            return "";
-        }).join("") + '</div>';
-    }
-
-const extLinkHtml = extLink.trim()
-? `<div onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','linkClicks'); window.open('${e(extLink)}','_blank'); })"   style="display:inline-flex;align-items:center;gap:8px;margin-top:10px;margin-bottom:5px;padding:10px 16px;background:#f0f7ff;border:1px solid #d0e1fd;border-radius:8px;color:#1967d2;font-size:14px;font-weight:600;cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="#1967d2"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>Visit link</div>`
-    : "";
-    const chatBtn = "";
-    const waNum = (post.whatsapp || "").replace(/[^0-9]/g, "");
-    const waFinal = waNum.startsWith("0") ? "92" + waNum.substring(1) : waNum;
-    const waMsg2 = encodeURIComponent(`Hi, I saw your post "${title}" on Health Jobs Portal.`);
-
-const whatsappBtn = waFinal
-    ? `<div class="circle-btn-wrapper" style="cursor:pointer;" onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','whatsappClicks'); window.open('https://wa.me/${waFinal}?text=${waMsg2}','_blank'); })"><div class="circle-btn btn-wa"><svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg></div><span class="btn-label">WhatsApp</span></div>`
-    : "";
-
-const callBtn = (post.localNum || "").trim()
-    ? `<div class="circle-btn-wrapper" style="cursor:pointer;" onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','callClicks'); window.location.href='tel:${e((post.localNum||"").trim())}'; })"><div class="circle-btn btn-call"><svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg></div><span class="btn-label">Call</span></div>`
-    : "";
-
-    return `<!DOCTYPE html>
+  });
+  let mediaHtml = "";
+  if (media.length > 0) {
+    mediaHtml = '<div class="media-container">' + media.map((m) => {
+      if (m.type === "image") return `<div class="media-item"><img src="${e(m.url)}" alt="${e(title || posterName)}" loading="lazy" onclick="openLightbox('${e(m.url)}')" style="cursor:zoom-in;"></div>`;
+      if (m.type === "video") return `<div class="media-item"><video src="${e(m.url)}" controls preload="none" style="width:100%;border-radius:8px;border:1px solid var(--border-color);" poster="${e(ogImage)}"></video></div>`;
+      if (m.type === "pdf") return `<div class="media-item"><a href="${e(m.url)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:8px;padding:12px 16px;background:#f0f7ff;border:1px solid #d0e1fd;border-radius:8px;text-decoration:none;color:#1967d2;font-size:14px;font-weight:600;"><svg width="16" height="16" viewBox="0 0 24 24" fill="#1967d2"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg> \u{1F4C4} ${e(m.name || "View Document")}</a></div>`;
+      return "";
+    }).join("") + "</div>";
+  }
+  const extLinkHtml = extLink.trim() ? `<div onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','linkClicks'); window.open('${e(extLink)}','_blank'); })"   style="display:inline-flex;align-items:center;gap:8px;margin-top:10px;margin-bottom:5px;padding:10px 16px;background:#f0f7ff;border:1px solid #d0e1fd;border-radius:8px;color:#1967d2;font-size:14px;font-weight:600;cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="#1967d2"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>Visit link</div>` : "";
+  const chatBtn = "";
+  const waNum = (post.whatsapp || "").replace(/[^0-9]/g, "");
+  const waFinal = waNum.startsWith("0") ? "92" + waNum.substring(1) : waNum;
+  const waMsg2 = encodeURIComponent(`Hi, I saw your post "${title}" on Health Jobs Portal.`);
+  const whatsappBtn = waFinal ? `<div class="circle-btn-wrapper" style="cursor:pointer;" onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','whatsappClicks'); window.open('https://wa.me/${waFinal}?text=${waMsg2}','_blank'); })"><div class="circle-btn btn-wa"><svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg></div><span class="btn-label">WhatsApp</span></div>` : "";
+  const callBtn = (post.localNum || "").trim() ? `<div class="circle-btn-wrapper" style="cursor:pointer;" onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','callClicks'); window.location.href='tel:${e((post.localNum || "").trim())}'; })"><div class="circle-btn btn-call"><svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg></div><span class="btn-label">Call</span></div>` : "";
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2797,7 +2609,7 @@ main{width:100%;padding:0 10px;}
 .report-submit:hover{background:#dc2626;}
 .report-success{text-align:center;padding:10px 0;font-size:14px;color:#16a34a;font-weight:600;display:none;}
 
-/* ── Related Updates Section ── */
+/* \u2500\u2500 Related Updates Section \u2500\u2500 */
 .related-section{margin-top:14px;margin-bottom:6px;background:var(--bg-white);border-radius:12px;border:1px solid var(--border-color);padding:20px;box-shadow:0 2px 4px rgba(0,0,0,0.02);}
 .related-heading{font-size:15px;font-weight:800;color:var(--text-main);margin-bottom:12px;display:flex;align-items:center;gap:7px;}
 .related-heading svg{width:18px;height:18px;fill:#16a34a;}
@@ -2840,13 +2652,13 @@ main{width:100%;padding:0 10px;}
 <div class="details-card">
 
     <div class="user-section">
-<a href="${SITE_URL}/wid.html?uid=${e(post.posterId || '')}" style="flex-shrink:0;">
+<a href="${SITE_URL}/wid.html?uid=${e(post.posterId || "")}" style="flex-shrink:0;">
 <img src="${e(posterPic)}" class="user-avatar" alt="${e(posterName)}"
              onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(posterName)}&background=0a66c2&color=fff'">
 </a>
         <div class="user-details">
-            <div class="user-name">${e(posterName)}${verified ? '<span style="display:inline-flex;align-items:center;justify-content:center;background:#0a66c2;border-radius:50%;width:18px;height:18px;margin-left:4px;border:2px solid #fff;flex-shrink:0;"><svg viewBox=\"0 0 24 24\" width=\"10\" fill=\"white\"><path d=\"M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z\"/></svg></span>' : ''}</div>
-            <div class="post-badge">🩺 Medical Update</div>
+            <div class="user-name">${e(posterName)}${verified ? '<span style="display:inline-flex;align-items:center;justify-content:center;background:#0a66c2;border-radius:50%;width:18px;height:18px;margin-left:4px;border:2px solid #fff;flex-shrink:0;"><svg viewBox="0 0 24 24" width="10" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>' : ""}</div>
+            <div class="post-badge">\u{1FA7A} Medical Update</div>
             <div class="post-time">${e(city)} &bull; ${formattedDate}</div>
         </div>
     </div>
@@ -2866,7 +2678,7 @@ ${desc ? `<div class="update-desc">${desc}</div>` : ""}
     <!-- Medical ID Card Promo -->
 <div style="background:linear-gradient(135deg,#eff6ff 0%,#f0fdf4 100%);border:1px solid #bfdbfe;border-radius:14px;padding:16px 18px;margin:16px 0;">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-    <span style="font-size:26px;">🪪</span>
+    <span style="font-size:26px;">\u{1FAAA}</span>
 <div style="font-size:14px;font-weight:800;color:#1e40af;">Generate Your Medical ID Card - Completely Free!</div>
   </div>
   <div style="font-size:13px;color:#334155;line-height:1.6;margin-bottom:12px;">
@@ -2921,7 +2733,7 @@ ${chatBtn}
 
 
 <div class="sidebar-col">
-<!-- ── Related Updates Section ───────────────────────────────────────── -->
+<!-- \u2500\u2500 Related Updates Section \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 -->
 <div class="related-section">
     <div class="related-heading">
         <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
@@ -3074,7 +2886,7 @@ window.doLike = async function() {
     } catch(e) {}
 };
 
-// ── Context Menu ──────────────────────────────────────────────────
+// \u2500\u2500 Context Menu \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 window.closeCmtCtxMenu = function() {
     const m = document.getElementById('cmt-ctx-global');
     if (m) m.remove();
@@ -3104,7 +2916,7 @@ menu.style.top  = top + 'px';
     setTimeout(() => document.addEventListener('click', window.closeCmtCtxMenu, { once: true }), 50);
 }
 
-// ── Comment Reactions ─────────────────────────────────────────────
+// \u2500\u2500 Comment Reactions \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 window.toggleCmtReaction = async function(cid, type) {
     if (!currentUser) { sessionStorage.setItem('redirectAfterLogin', window.location.href); window.location.replace("https://healthjobportal.com/login.html"); return; }
     const uid = currentUser.uid;
@@ -3143,7 +2955,7 @@ window.toggleCmtReaction = async function(cid, type) {
     } catch(e) {}
 };
 
-// ── Reply Box ─────────────────────────────────────────────────────
+// \u2500\u2500 Reply Box \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 window.showReplyBox = function(parentCid, toName) {
     document.querySelectorAll('.reply-input-row').forEach(b => b.remove());
     const row = document.createElement('div');
@@ -3176,7 +2988,7 @@ window.sendReply = async function(parentCid) {
     } catch(e) { inp.disabled = false; }
 };
 
-// ── Toggle Replies ────────────────────────────────────────────────
+// \u2500\u2500 Toggle Replies \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 window.toggleReplies = function(parentCid) {
     const list = document.getElementById('replies-list-' + parentCid);
     const btn  = document.getElementById('replies-toggle-' + parentCid);
@@ -3186,7 +2998,7 @@ window.toggleReplies = function(parentCid) {
     btn.classList.toggle('open', !isOpen);
 };
 
-// ── Build Comment Element ─────────────────────────────────────────
+// \u2500\u2500 Build Comment Element \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 function buildCmtEl(c, isReply) {
     const isMe   = !!(currentUser && c.userId === currentUser.uid);
     const myUid  = currentUser?.uid || '';
@@ -3224,7 +3036,7 @@ function buildCmtEl(c, isReply) {
                     <span id="dcount-\${c.id}">\${dCount > 0 ? dCount : ''}</span>
                 </button>
                 \${!isReply ? \`<button class="cmt-reply-btn" onclick="window.showReplyBox('\${c.id}','\${escHtml(c.userName||'User')}')">Reply</button>\` : ''}
-                \${isMe ? \`<button class="cmt-3dot" onclick="event.stopPropagation();showCmtCtxMenu(event,'\${c.id}',true)">···</button>\` : ''}
+                \${isMe ? \`<button class="cmt-3dot" onclick="event.stopPropagation();showCmtCtxMenu(event,'\${c.id}',true)">\xB7\xB7\xB7</button>\` : ''}
             </div>
         </div>\`;
 
@@ -3237,7 +3049,7 @@ function buildCmtEl(c, isReply) {
     return wrap;
 }
 
-// ── Load Comments ─────────────────────────────────────────────────
+// \u2500\u2500 Load Comments \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 function loadComments() {
     const cmtList = document.getElementById('cmt-list');
     const countEl = document.getElementById('cmt-count-display');
@@ -3337,7 +3149,7 @@ window.sendComment = async function() {
 window.deleteCmt = async function(cmtId) {
     if (!currentUser || !confirm("Delete this comment?")) return;
     try {
-        // replies بھی delete کرو
+        // replies \u0628\u06BE\u06CC delete \u06A9\u0631\u0648
         const repliesSnap = await getDocs(
             query(collection(db, "posts", POST_ID, "comments"),
             where("parentId", "==", cmtId))
@@ -3346,7 +3158,7 @@ window.deleteCmt = async function(cmtId) {
         repliesSnap.forEach(r => batch.push(deleteDoc(doc(db, "posts", POST_ID, "comments", r.id))));
         await Promise.all(batch);
         await deleteDoc(doc(db, "posts", POST_ID, "comments", cmtId));
-        // count onSnapshot خود update کرے گا — manually نہ چھیڑو
+        // count onSnapshot \u062E\u0648\u062F update \u06A9\u0631\u06D2 \u06AF\u0627 \u2014 manually \u0646\u06C1 \u0686\u06BE\u06CC\u0691\u0648
     } catch(e) { console.error(e); }
 };
 
@@ -3404,8 +3216,8 @@ async function loadRelatedUpdates() {
                 <div class="rel-info">
                     <div class="rel-title">\${(p.title||p.desc||'').replace(/</g,'&lt;')}</div>
                     <div class="rel-meta">
-                        <span class="rel-badge">🩺 Update</span>
-                        \${p.location ? '<span>📍 '+p.location+'</span>' : ''}
+                        <span class="rel-badge">\u{1FA7A} Update</span>
+                        \${p.location ? '<span>\u{1F4CD} '+p.location+'</span>' : ''}
                     </div>
                 </div>
                 <svg class="rel-arrow" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
@@ -3531,108 +3343,101 @@ function sharePost(){
 </body>
 </html>`;
 }
-// ── Medical Note Page Builder ─────────────────────────────────────────────────
+__name(buildUpdatePage, "buildUpdatePage");
 function buildNotePage(post, slug, verified = false) {
-    const e  = s => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-    const eJ = s => String(s ?? "").replace(/\\/g,"\\\\").replace(/"/g,'\\"').replace(/\n/g,"\\n");
-
-    const title      = post.title      || "Medical Note";
-    const desc       = post.desc       || "";
-    const posterName = post.posterName || SITE_NAME;
-    const posterPic  = post.posterPic  || `https://ui-avatars.com/api/?name=${encodeURIComponent(posterName)}&background=2563eb&color=fff`;
-    const city       = post.location   || "Pakistan";
-    const diplomas   = Array.isArray(post.diplomas) ? post.diplomas : [];
-    const pdfUrl     = post.pdfUrl     || "";
-    const pdfName    = post.pdfName    || "medical-note.pdf";
-    const postedDate = post.createdAt  || "";
-    const canonicalUrl = `${SITE_URL}/notes/${slug}`;
-
-    const pageTitle = `${title} | Medical Notes | ${SITE_NAME}`;
-    const metaDesc  = desc
-        ? desc.replace(/\n/g," ").trim().substring(0,157) + (desc.length > 157 ? "..." : "")
-        : `Medical note by ${posterName} - ${diplomas.join(", ")} | ${SITE_NAME}`;
-    const ogImage = posterPic || FALLBACK_IMG;
-
-    let formattedDate = "Recently";
-    if (postedDate) {
-        try {
-            formattedDate = new Date(
-                typeof postedDate === "string" ? postedDate : (postedDate._seconds ? postedDate._seconds * 1000 : postedDate)
-            ).toLocaleDateString("en-US", { day:"numeric", month:"short", year:"numeric" });
-        } catch(_) {}
+  const e = /* @__PURE__ */ __name((s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"), "e");
+  const eJ = /* @__PURE__ */ __name((s) => String(s ?? "").replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n"), "eJ");
+  const title = post.title || "Medical Note";
+  const desc = post.desc || "";
+  const posterName = post.posterName || SITE_NAME;
+  const posterPic = post.posterPic || `https://ui-avatars.com/api/?name=${encodeURIComponent(posterName)}&background=2563eb&color=fff`;
+  const city = post.location || "Pakistan";
+  const diplomas = Array.isArray(post.diplomas) ? post.diplomas : [];
+  const pdfUrl = post.pdfUrl || "";
+  const pdfName = post.pdfName || "medical-note.pdf";
+  const postedDate = post.createdAt || "";
+  const canonicalUrl = `${SITE_URL}/notes/${slug}`;
+  const pageTitle = `${title} | Medical Notes | ${SITE_NAME}`;
+  const metaDesc = desc ? desc.replace(/\n/g, " ").trim().substring(0, 157) + (desc.length > 157 ? "..." : "") : `Medical note by ${posterName} - ${diplomas.join(", ")} | ${SITE_NAME}`;
+  const ogImage = posterPic || FALLBACK_IMG;
+  let formattedDate = "Recently";
+  if (postedDate) {
+    try {
+      formattedDate = new Date(
+        typeof postedDate === "string" ? postedDate : postedDate._seconds ? postedDate._seconds * 1e3 : postedDate
+      ).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
+    } catch (_) {
     }
-
-    const diplomaTagsHtml = diplomas.map(d =>
-        `<span class="diploma-tag">${e(d)}</span>`
-    ).join("");
-
-const jsonLd = JSON.stringify({
+  }
+  const diplomaTagsHtml = diplomas.map(
+    (d) => `<span class="diploma-tag">${e(d)}</span>`
+  ).join("");
+  const jsonLd = JSON.stringify({
     "@context": "https://schema.org/",
     "@graph": [
-        {
-            "@type": ["MedicalWebPage", "ScholarlyArticle"],
-            "headline": title,
-            "description": metaDesc,
-            "datePublished": typeof postedDate === "string" ? postedDate : new Date().toISOString(),
-            "dateModified": typeof postedDate === "string" ? postedDate : new Date().toISOString(),
-            "author": {
-                "@type": "Person",
-                "name": posterName,
-                "image": posterPic,
-                "hasCredential": diplomas.map(d => ({
-                    "@type": "EducationalOccupationalCredential",
-                    "credentialCategory": d
-                }))
-            },
-            "publisher": {
-                "@type": "Organization",
-                "name": SITE_NAME,
-                "logo": {
-                    "@type": "ImageObject",
-                    "url": FALLBACK_IMG
-                }
-            },
-            "image": ogImage,
-            "url": canonicalUrl,
-            "mainEntityOfPage": {
-                "@type": "WebPage",
-                "@id": canonicalUrl
-            },
-            "about": {
-                "@type": "MedicalCondition",
-                "name": title
-            },
-            "specialty": diplomas.length > 0 ? {
-                "@type": "MedicalSpecialty",
-                "name": diplomas[0]
-            } : { "@type": "MedicalSpecialty", "name": "General Practice" },
-            "medicalAudience": {
-                "@type": "MedicalAudience",
-                "audienceType": "Clinician"
-            },
-            "keywords": diplomas.join(", ") + ", medical notes Pakistan, clinical notes, " + posterName,
-            "educationalLevel": "Professional",
-            "learningResourceType": "Lecture Notes",
-            "inLanguage": "en-PK",
-            "isAccessibleForFree": true,
-            "hasPart": pdfUrl ? [{
-                "@type": "MediaObject",
-                "contentUrl": canonicalUrl,
-                "encodingFormat": "application/pdf",
-                "name": pdfName
-            }] : []
-        }
+      {
+        "@type": ["MedicalWebPage", "ScholarlyArticle"],
+        "headline": title,
+        "description": metaDesc,
+        "datePublished": typeof postedDate === "string" ? postedDate : (/* @__PURE__ */ new Date()).toISOString(),
+        "dateModified": typeof postedDate === "string" ? postedDate : (/* @__PURE__ */ new Date()).toISOString(),
+        "author": {
+          "@type": "Person",
+          "name": posterName,
+          "image": posterPic,
+          "hasCredential": diplomas.map((d) => ({
+            "@type": "EducationalOccupationalCredential",
+            "credentialCategory": d
+          }))
+        },
+        "publisher": {
+          "@type": "Organization",
+          "name": SITE_NAME,
+          "logo": {
+            "@type": "ImageObject",
+            "url": FALLBACK_IMG
+          }
+        },
+        "image": ogImage,
+        "url": canonicalUrl,
+        "mainEntityOfPage": {
+          "@type": "WebPage",
+          "@id": canonicalUrl
+        },
+        "about": {
+          "@type": "MedicalCondition",
+          "name": title
+        },
+        "specialty": diplomas.length > 0 ? {
+          "@type": "MedicalSpecialty",
+          "name": diplomas[0]
+        } : { "@type": "MedicalSpecialty", "name": "General Practice" },
+        "medicalAudience": {
+          "@type": "MedicalAudience",
+          "audienceType": "Clinician"
+        },
+        "keywords": diplomas.join(", ") + ", medical notes Pakistan, clinical notes, " + posterName,
+        "educationalLevel": "Professional",
+        "learningResourceType": "Lecture Notes",
+        "inLanguage": "en-PK",
+        "isAccessibleForFree": true,
+        "hasPart": pdfUrl ? [{
+          "@type": "MediaObject",
+          "contentUrl": canonicalUrl,
+          "encodingFormat": "application/pdf",
+          "name": pdfName
+        }] : []
+      }
     ]
-});
-
-    return `<!DOCTYPE html>
+  });
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>${e(pageTitle)}</title>
 <meta name="description" content="${e(metaDesc)}">
-<meta name="keywords" content="${e(diplomas.join(', '))}, medical notes Pakistan, clinical notes, study material, ${e(posterName)}, healthcare notes, medical education">
+<meta name="keywords" content="${e(diplomas.join(", "))}, medical notes Pakistan, clinical notes, study material, ${e(posterName)}, healthcare notes, medical education">
 <meta property="og:type" content="article">
 <meta name="article:section" content="Medical Notes">
 <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
@@ -3715,8 +3520,8 @@ main{width:100%;padding:16px 12px;}
         <img class="author-avatar" src="${e(posterPic)}" alt="${e(posterName)}"
              onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(posterName)}&background=2563eb&color=fff'">
         <div>
-<div class="author-name">${e(posterName)}${verified ? '<span style="display:inline-flex;align-items:center;justify-content:center;background:#2563eb;border-radius:50%;width:18px;height:18px;margin-left:4px;border:2px solid #fff;flex-shrink:0;"><svg viewBox=\"0 0 24 24\" width=\"10\" fill=\"white\"><path d=\"M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z\"/></svg></span>' : ''}</div>
-            <div class="note-badge">📋 Medical Note</div>
+<div class="author-name">${e(posterName)}${verified ? '<span style="display:inline-flex;align-items:center;justify-content:center;background:#2563eb;border-radius:50%;width:18px;height:18px;margin-left:4px;border:2px solid #fff;flex-shrink:0;"><svg viewBox="0 0 24 24" width="10" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>' : ""}</div>
+            <div class="note-badge">\u{1F4CB} Medical Note</div>
             <div class="author-meta">${e(city)} &bull; ${formattedDate}</div>
         </div>
     </div>
@@ -3743,7 +3548,7 @@ main{width:100%;padding:16px 12px;}
 </a>
 
 
-${pdfUrl ? '<div class="pdf-top-bar"><span class="pdf-page-info" id="pdf-page-info">Loading...</span><button class="pdf-dl-btn" onclick="pdfDownload()"><svg viewBox=\"0 0 24 24\"><path d=\"M19 9h-4V3H9v6H5l7 7 7-7zm-8 2V5h2v6h1.17L12 13.17 9.83 11H11zm-6 7h14v2H5v-2z\"/></svg>Download PDF</button></div><div class="pdf-loading" id="pdf-loading">📄 Loading PDF...</div><div class="pdf-pages-wrap" id="pdf-canvas-wrap"></div>' : '<div style=\"text-align:center;padding:20px;color:var(--muted);font-size:14px;\">PDF not available</div>'}
+${pdfUrl ? '<div class="pdf-top-bar"><span class="pdf-page-info" id="pdf-page-info">Loading...</span><button class="pdf-dl-btn" onclick="pdfDownload()"><svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zm-8 2V5h2v6h1.17L12 13.17 9.83 11H11zm-6 7h14v2H5v-2z"/></svg>Download PDF</button></div><div class="pdf-loading" id="pdf-loading">\u{1F4C4} Loading PDF...</div><div class="pdf-pages-wrap" id="pdf-canvas-wrap"></div>' : '<div style="text-align:center;padding:20px;color:var(--muted);font-size:14px;">PDF not available</div>'}
 </div>
 </main>
 </div>
@@ -3777,7 +3582,7 @@ async function loadPdf() {
         await renderAllPages();
         updatePageInfo();
     } catch(e) {
-        document.getElementById('pdf-loading').textContent = '❌ PDF load failed: ' + e.message;
+        document.getElementById('pdf-loading').textContent = '\u274C PDF load failed: ' + e.message;
     }
 }
 
@@ -3817,7 +3622,7 @@ function pdfNext() {
     updatePageInfo();
 }
 
-// ✅ Right click اور long press بند
+// \u2705 Right click \u0627\u0648\u0631 long press \u0628\u0646\u062F
 document.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('DOMContentLoaded', () => {
     const wrap = document.getElementById('pdf-canvas-wrap');
@@ -3877,48 +3682,53 @@ async function pdfDownload() {
 </body>
 </html>`;
 }
+__name(buildNotePage, "buildNotePage");
 async function isUserVerified(posterId, env) {
-    if (!posterId) return false;
-
-    const cacheKey = `verified:${posterId}`;
-    try {
-        const cached = await env.JOBS_KV.get(cacheKey, { type: "text" });
-        if (cached !== null) return cached === "1";
-    } catch(e) {}
-
-    try {
-        const res = await fetch(
-            `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/users/${posterId}?key=${env.FIREBASE_API_KEY}`
-        );
-        const json = await res.json();
-        const isVerified = json.fields?.isVerified?.booleanValue === true;
-
-        await env.JOBS_KV.put(cacheKey, isVerified ? "1" : "0", { expirationTtl: 604800 });
-        return isVerified;
-    } catch(e) {
-        return false;
-    }
-}
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function htmlResponse(html, extra = {}) {
-    return new Response(html, {
-        status: 200,
-        headers: {
-            "Content-Type": "text/html;charset=UTF-8",
-            "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
-            ...extra
-        }
-    });
-}
-
-function errorPage(status, heading, message) {
-    return new Response(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${heading} | Health Jobs Portal</title><meta name="robots" content="noindex"><style>*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,sans-serif;}body{background:#f3f2ef;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}.box{background:white;border-radius:14px;padding:40px 30px;max-width:420px;width:100%;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.08);}.icon{font-size:52px;margin-bottom:16px;}h1{font-size:22px;color:#0a66c2;margin-bottom:10px;}p{color:#555;font-size:15px;line-height:1.6;margin-bottom:24px;}a{display:inline-block;padding:12px 28px;background:#0a66c2;color:white;border-radius:24px;text-decoration:none;font-weight:700;font-size:14px;}</style></head><body><div class="box"><div class="icon">${status === 404 ? "🔍" : "⚠️"}</div><h1>${heading}</h1><p>${message}</p><a href="${SITE_URL}/">Browse All Jobs</a></div></body></html>`,
-        {
-            status,
-            headers: {
-                "Content-Type": "text/html;charset=UTF-8",
-                "Cache-Control": "no-store"
-            }
-        }
+  if (!posterId) return false;
+  const cacheKey = `verified:${posterId}`;
+  try {
+    const cached = await env.JOBS_KV.get(cacheKey, { type: "text" });
+    if (cached !== null) return cached === "1";
+  } catch (e) {
+  }
+  try {
+    const res = await fetch(
+      `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/users/${posterId}?key=${env.FIREBASE_API_KEY}`
     );
+    const json = await res.json();
+    const isVerified = json.fields?.isVerified?.booleanValue === true;
+    await env.JOBS_KV.put(cacheKey, isVerified ? "1" : "0", { expirationTtl: 604800 });
+    return isVerified;
+  } catch (e) {
+    return false;
+  }
 }
+__name(isUserVerified, "isUserVerified");
+function htmlResponse(html, extra = {}) {
+  return new Response(html, {
+    status: 200,
+    headers: {
+      "Content-Type": "text/html;charset=UTF-8",
+      "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
+      ...extra
+    }
+  });
+}
+__name(htmlResponse, "htmlResponse");
+function errorPage(status, heading, message) {
+  return new Response(
+    `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${heading} | Health Jobs Portal</title><meta name="robots" content="noindex"><style>*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,sans-serif;}body{background:#f3f2ef;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}.box{background:white;border-radius:14px;padding:40px 30px;max-width:420px;width:100%;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.08);}.icon{font-size:52px;margin-bottom:16px;}h1{font-size:22px;color:#0a66c2;margin-bottom:10px;}p{color:#555;font-size:15px;line-height:1.6;margin-bottom:24px;}a{display:inline-block;padding:12px 28px;background:#0a66c2;color:white;border-radius:24px;text-decoration:none;font-weight:700;font-size:14px;}</style></head><body><div class="box"><div class="icon">${status === 404 ? "\u{1F50D}" : "\u26A0\uFE0F"}</div><h1>${heading}</h1><p>${message}</p><a href="${SITE_URL}/">Browse All Jobs</a></div></body></html>`,
+    {
+      status,
+      headers: {
+        "Content-Type": "text/html;charset=UTF-8",
+        "Cache-Control": "no-store"
+      }
+    }
+  );
+}
+__name(errorPage, "errorPage");
+export {
+  worker_default as default
+};
+//# sourceMappingURL=worker.js.map
