@@ -824,31 +824,118 @@ function faqFindAuthLink(keyword) {
   }
   return "";
 }
+// ── Helpers for parsing possibly-messy AI JSON output ───────────────
+// Strips ```json / ``` fences (wherever they appear, not just the edges).
+function faqStripFences(text) {
+  const fence = String.fromCharCode(96, 96, 96);
+  let t = String(text || "");
+  t = t.replace(new RegExp(fence + "json", "gi"), fence);
+  t = t.split(fence).join("");
+  return t.trim();
+}
+__name(faqStripFences, "faqStripFences");
+// Attempts to repair a truncated/near-valid JSON array of {q,a,keyword}
+// objects by walking bracket depth and cutting at the last object that
+// closed cleanly, then re-closing the array. This recovers most of the
+// FAQ items even when the model's response got cut off mid-stream.
+function faqRepairJsonArray(jsonStr) {
+  const start = jsonStr.indexOf("[");
+  if (start === -1) return null;
+  let depth = 0;
+  let inString = false;
+  let escapeNext = false;
+  let lastGoodObjectEnd = -1;
+  for (let i = start; i < jsonStr.length; i++) {
+    const ch = jsonStr[i];
+    if (escapeNext) {
+      escapeNext = false;
+      continue;
+    }
+    if (ch === "\\") {
+      escapeNext = true;
+      continue;
+    }
+    if (ch === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) continue;
+    if (ch === "{" || ch === "[") depth++;
+    if (ch === "}" || ch === "]") {
+      depth--;
+      if (ch === "}" && depth === 1) lastGoodObjectEnd = i;
+      if (depth === 0) {
+        return jsonStr.slice(start, i + 1);
+      }
+    }
+  }
+  if (lastGoodObjectEnd !== -1) {
+    return jsonStr.slice(start, lastGoodObjectEnd + 1) + "]";
+  }
+  return null;
+}
+__name(faqRepairJsonArray, "faqRepairJsonArray");
+// Extracts and parses the FAQ JSON array from a raw AI response string.
+// Tries a straight parse first, then falls back to bracket-repair for
+// truncated/malformed output. Returns [] (never throws) on failure.
+function faqParseAiResponse(rawText) {
+  const text = faqStripFences(rawText);
+  const start = text.indexOf("[");
+  const end = text.lastIndexOf("]");
+  const jsonStr = start !== -1 && end !== -1 && end > start ? text.substring(start, end + 1) : text;
+  try {
+    const items = JSON.parse(jsonStr);
+    if (Array.isArray(items)) return items;
+  } catch (e) {
+  }
+  const repaired = faqRepairJsonArray(jsonStr);
+  if (repaired) {
+    try {
+      const items = JSON.parse(repaired);
+      if (Array.isArray(items)) return items;
+    } catch (e) {
+    }
+  }
+  return [];
+}
+__name(faqParseAiResponse, "faqParseAiResponse");
 // Generates 10 static FAQ Q&A pairs for a job post using Workers AI,
 // baked once into the cached page HTML (no client-side AI calls per view).
+// Retries once on a bad/unparsable response before giving up quietly.
 async function generateJobFaqHtml(title, category, city, descText, env) {
   const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  if (!env || !env.AI) return "";
+  const allowedKeywords = FAQ_AUTH_LINKS.map((e) => e.keys[0]).join(", ");
+  const prompt = `Job title: "${title}"\nCategory: "${category}"\nLocation: "${city}"\nJob description: "${descText.substring(0, 1200)}"\n\nGenerate exactly 10 short, realistic FAQ questions a visitor would ask about this specific job post (eligibility, how to apply, deadline, salary, location, documents, registration requirements, etc), each with a brief 2-3 sentence answer based only on the info above (invent nothing not implied by it).\nFor each item, also pick ONE relevant "keyword" from this fixed list ONLY if it genuinely applies to that question, otherwise leave keyword empty: ${allowedKeywords}.\nReturn ONLY a JSON array, no markdown, no extra text, in this exact shape:\n[{"q":"question text","a":"answer text","keyword":"one of the list above or empty"}]`;
+  let items = [];
+  let lastRawText = "";
+  let lastError = null;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const aiResult = await env.AI.run("@cf/meta/llama-3.3-70b-instruct-fp8-fast", {
+        messages: [
+          { role: "system", content: "You are a helpful assistant that writes concise, factual FAQ content for a healthcare jobs website in Pakistan. Reply with strict JSON only." },
+          { role: "user", content: prompt }
+        ],
+        temperature: attempt === 1 ? 0.4 : 0.2
+      });
+      lastRawText = String((aiResult && aiResult.response) || "").trim();
+      items = faqParseAiResponse(lastRawText);
+      if (Array.isArray(items) && items.length) break;
+    } catch (e) {
+      lastError = e;
+    }
+  }
+  if (!Array.isArray(items) || !items.length) {
+    console.error(
+      "FAQ generation error: no valid items after retries.",
+      lastError ? `Last error: ${lastError.message || lastError}` : "",
+      "Raw AI response (truncated):",
+      lastRawText.slice(0, 500)
+    );
+    return "";
+  }
   try {
-    if (!env || !env.AI) return "";
-    const allowedKeywords = FAQ_AUTH_LINKS.map((e) => e.keys[0]).join(", ");
-    const prompt = `Job title: "${title}"\nCategory: "${category}"\nLocation: "${city}"\nJob description: "${descText.substring(0, 1200)}"\n\nGenerate exactly 10 short, realistic FAQ questions a visitor would ask about this specific job post (eligibility, how to apply, deadline, salary, location, documents, registration requirements, etc), each with a brief 2-3 sentence answer based only on the info above (invent nothing not implied by it).\nFor each item, also pick ONE relevant "keyword" from this fixed list ONLY if it genuinely applies to that question, otherwise leave keyword empty: ${allowedKeywords}.\nReturn ONLY a JSON array, no markdown, no extra text, in this exact shape:\n[{"q":"question text","a":"answer text","keyword":"one of the list above or empty"}]`;
-    const aiResult = await env.AI.run("@cf/meta/llama-3.3-70b-instruct-fp8-fast", {
-      messages: [
-        { role: "system", content: "You are a helpful assistant that writes concise, factual FAQ content for a healthcare jobs website in Pakistan. Reply with strict JSON only." },
-        { role: "user", content: prompt }
-      ],
-      temperature: 0.4
-    });
-    let text = String((aiResult && aiResult.response) || "").trim();
-    const fence = String.fromCharCode(96, 96, 96);
-    if (text.slice(0, 7).toLowerCase() === fence + "json") text = text.slice(7);
-    else if (text.slice(0, 3) === fence) text = text.slice(3);
-    if (text.slice(-3) === fence) text = text.slice(0, -3);
-    const start = text.indexOf("[");
-    const end = text.lastIndexOf("]");
-    const jsonStr = start !== -1 && end !== -1 && end > start ? text.substring(start, end + 1) : text;
-    const items = JSON.parse(jsonStr);
-    if (!Array.isArray(items) || !items.length) return "";
     const rows = items.slice(0, 10).map((it, i) => {
       const q = String((it && it.q) || "").trim();
       const a = String((it && it.a) || "").trim();
@@ -869,7 +956,7 @@ async function generateJobFaqHtml(title, category, city, descText, env) {
     }).filter(Boolean).join("");
     return rows;
   } catch (e) {
-    console.error("FAQ generation error:", e);
+    console.error("FAQ rendering error:", e);
     return "";
   }
 }
