@@ -708,6 +708,12 @@ async function handleSitemap(env) {
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>${SITE_URL}/contact.html</loc>
+    <lastmod>2026-05-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
     <loc>${SITE_URL}/privcy.html</loc>
     <lastmod>2026-05-19</lastmod>
     <changefreq>monthly</changefreq>
@@ -1039,6 +1045,7 @@ async function buildPostPage(post, slug, verified = false, env) {
 "addressRegion":"${eJ(post.addressRegion || city)}",
 ${city ? `"postalCode":"00000",` : ""}
 "addressCountry":"PK"}},${baseSalaryLd}"occupationalCategory":"${eJ(category)}","url":"${eJ(canonicalUrl)}"}`;
+  const breadcrumbLd = `{"@context":"https://schema.org/","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"${eJ(SITE_URL + "/")}"},{"@type":"ListItem","position":2,"name":"${eJ(category || "Jobs")}","item":"${eJ(SITE_URL + "/")}"},{"@type":"ListItem","position":3,"name":"${eJ(title)}","item":"${eJ(canonicalUrl)}"}]}`;
   const faqHtml = await generateJobFaqHtml(title, category, city, tempDesc, env);
   const faqSectionHtml = faqHtml ? `<div class="faq-section" id="faq-section">
     <div class="faq-heading">
@@ -1068,6 +1075,7 @@ ${city ? `"postalCode":"00000",` : ""}
 <meta name="twitter:description" content="${e(metaDesc)}">
 <meta name="twitter:image" content="${e(ogImage)}">
 <script type="application/ld+json">${jsonLd}<\/script>
+<script type="application/ld+json">${breadcrumbLd}<\/script>
 <script>
 setTimeout(function(){
 let s1=document.createElement('script');s1.src="https://www.googletagmanager.com/gtag/js?id=G-NC0B547PYR";s1.async=true;document.head.appendChild(s1);
@@ -1087,9 +1095,11 @@ header{background:var(--bg-white);padding:0 15px;display:flex;align-items:center
 .back-btn svg{width:26px;height:26px;fill:currentColor;}
 .logo-text{font-size:18px;font-weight:700;color:var(--text-main);}
 main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-box;}
+.page-breadcrumb{font-size:12.5px;color:var(--text-secondary);margin:12px 2px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.page-breadcrumb a{color:var(--primary-blue);text-decoration:none;font-weight:600;}
+.page-breadcrumb .crumb-sep{margin:0 6px;color:#c7cdd6;}
+.page-disclaimer{font-size:12.5px;color:var(--text-secondary);line-height:1.6;margin:10px 0 2px;padding-top:12px;border-top:1px solid var(--border-color);}
 .details-card{background:var(--bg-white);border-radius:12px;border:1px solid var(--border-color);box-shadow:0 2px 4px rgba(0,0,0,0.02);padding:25px;margin-top:10px;}
-.user-section{display:flex;align-items:center;gap:15px;margin-bottom:25px;padding-bottom:20px;border-bottom:1px solid #f1f1f1;}
-.user-avatar{width:60px;height:60px;border-radius:50%;object-fit:cover;border:1px solid var(--border-color);}
 .user-details{flex:1;}
 .user-name{font-size:18px;font-weight:700;color:var(--text-main);margin-bottom:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 .role-badge{font-size:10px;padding:4px 8px;border-radius:12px;text-transform:uppercase;font-weight:800;}
@@ -1281,6 +1291,7 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
 
 <div class="page-layout">
 <main>
+<div class="page-breadcrumb"><a href="${SITE_URL}/">Home</a><span class="crumb-sep">/</span><span>${e(category || "Jobs")}</span><span class="crumb-sep">/</span><span>${e(title)}</span></div>
 <div class="details-card">
     <div class="user-section">
         <img src="${e(posterPic)}" class="user-avatar" alt="${e(posterName)}"
@@ -1296,6 +1307,7 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
     </div>
 ${expiresAt ? `<div id="expiry-badge-wrap"></div>` : ""}
 <div class="job-title">${e(title)}</div>
+<div class="page-disclaimer">Please verify all job details directly with the employer before applying. Health Jobs Portal does not charge any fee for job applications.</div>
 <!-- TrustBox widget - Review Collector -->
 <div class="trustpilot-widget" data-locale="en-US" data-template-id="56278e9abfbbba0bdcd568bc" data-businessunit-id="6a32028be10624a15deb07d6" data-style-height="52px" data-style-width="100%" data-token="4d97b915-5abc-4d24-9888-b4072d453a26">
   <a href="https://www.trustpilot.com/review/healthjobportal.com" target="_blank" rel="noopener">Trustpilot</a>
@@ -1489,6 +1501,7 @@ ${faqSectionHtml}
         <a href="https://healthjobportal.com/index.html" style="color:#64748b;text-decoration:none;font-size:12px;font-weight:600;">Home</a>
         <a href="https://healthjobportal.com/cv-maker.html" style="color:#64748b;text-decoration:none;font-size:12px;font-weight:600;">Cv maker</a>
         <a href="https://healthjobportal.com/about.html" style="color:#64748b;text-decoration:none;font-size:12px;font-weight:600;">About Us</a>
+        <a href="https://healthjobportal.com/contact.html" style="color:#64748b;text-decoration:none;font-size:12px;font-weight:600;">Contact Us</a>
         <a href="https://healthjobportal.com/terms.html" style="color:#64748b;text-decoration:none;font-size:12px;font-weight:600;">Terms</a>
         <a href="https://healthjobportal.com/privcy.html" style="color:#64748b;text-decoration:none;font-size:12px;font-weight:600;">Privacy Policy</a>
     </div>
@@ -2857,6 +2870,7 @@ ${chatBtn}
         <a href="https://healthjobportal.com/index.html" style="color:#64748b;text-decoration:none;font-size:12px;font-weight:600;">Home</a>
         <a href="https://healthjobportal.com/cv-maker.html" style="color:#64748b;text-decoration:none;font-size:12px;font-weight:600;">Cv maker</a>
         <a href="https://healthjobportal.com/about.html" style="color:#64748b;text-decoration:none;font-size:12px;font-weight:600;">About Us</a>
+        <a href="https://healthjobportal.com/contact.html" style="color:#64748b;text-decoration:none;font-size:12px;font-weight:600;">Contact Us</a>
         <a href="https://healthjobportal.com/terms.html" style="color:#64748b;text-decoration:none;font-size:12px;font-weight:600;">Terms</a>
         <a href="https://healthjobportal.com/privcy.html" style="color:#64748b;text-decoration:none;font-size:12px;font-weight:600;">Privacy Policy</a>
     </div>
