@@ -518,9 +518,11 @@ async function refreshRelatedPools(env) {
       const docId = d.document.name.split("/").pop();
       const imgArr = f.media?.arrayValue?.values || [];
       const thumbUrl = imgArr.find((v) => v.mapValue?.fields?.type?.stringValue === "image")?.mapValue?.fields?.url?.stringValue || f.posterPic?.stringValue || "";
+      const rawDesc = (f.desc?.stringValue || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
       return {
         id: docId,
         title: f.title?.stringValue || "Healthcare Job",
+        desc: rawDesc.substring(0, 110) + (rawDesc.length > 110 ? "..." : ""),
         location: f.location?.stringValue || "",
         salary: f.salary?.stringValue || "Negotiable",
         posterRole: f.posterRole?.stringValue || "employer",
@@ -1131,22 +1133,26 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
 .report-submit:hover{background:#dc2626;}
 .report-success{text-align:center;padding:10px 0;font-size:14px;color:#16a34a;font-weight:600;display:none;}
 
-/* \u2500\u2500 Related Jobs Section \u2500\u2500 */
+/* \u2500\u2500 Related Jobs Section (YouTube-style stacked cards) \u2500\u2500 */
 .related-section{margin-top:14px;margin-bottom:6px;background:var(--bg-white);border-radius:12px;border:1px solid var(--border-color);padding:20px;box-shadow:0 2px 4px rgba(0,0,0,0.02);}
 .related-heading{font-size:15px;font-weight:800;color:var(--text-main);margin-bottom:12px;display:flex;align-items:center;gap:7px;}
 .related-heading svg{width:18px;height:18px;fill:var(--primary-blue);}
-.related-grid{display:flex;flex-direction:column;gap:10px;}
-.related-card{display:flex;align-items:center;gap:12px;background:var(--bg-white);border:1px solid var(--border-color);border-radius:12px;padding:14px;cursor:pointer;text-decoration:none;transition:box-shadow 0.2s,border-color 0.2s;width:100%;box-sizing:border-box;}
+.related-grid{display:flex;flex-direction:column;gap:18px;}
+.related-card{display:flex;flex-direction:column;background:var(--bg-white);border:1px solid var(--border-color);border-radius:14px;overflow:hidden;cursor:pointer;text-decoration:none;transition:box-shadow 0.2s,border-color 0.2s;width:100%;box-sizing:border-box;}
 .related-card:hover{box-shadow:0 4px 14px rgba(10,102,194,0.12);border-color:#b8d0f0;}
-.related-thumb{width:64px;height:64px;border-radius:10px;object-fit:cover;border:1.5px solid var(--border-color);flex-shrink:0;background:#f0f7ff;}
-.related-info{flex:1;min-width:0;}
-.related-title{font-size:14px;font-weight:700;color:var(--text-main);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:5px;line-height:1.4;}
-.related-meta{font-size:11px;color:var(--text-secondary);display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
-.related-badge{font-size:9px;padding:2px 7px;border-radius:10px;font-weight:800;text-transform:uppercase;}
-.related-badge.emp{background:#f0f7ff;color:#1967d2;border:1px solid #d0e1fd;}
-.related-badge.cnd{background:#faf5ff;color:#681da8;border:1px solid #e9d5ff;}
-.related-arrow{color:#b0b8c9;flex-shrink:0;}
-.related-skeleton{background:#f1f5f9;border-radius:12px;height:92px;animation:shimmer 1.2s infinite linear;background:linear-gradient(90deg,#f1f5f9 25%,#e8edf4 50%,#f1f5f9 75%);background-size:200% 100%;}
+.related-thumb-wrap{position:relative;width:100%;aspect-ratio:16/9;background:#f0f7ff;overflow:hidden;}
+.related-thumb{width:100%;height:100%;object-fit:cover;display:block;}
+.related-badge{position:absolute;top:10px;left:10px;font-size:10px;padding:3px 9px;border-radius:10px;font-weight:800;text-transform:uppercase;box-shadow:0 1px 4px rgba(0,0,0,0.15);}
+.related-badge.emp{background:#e8f1fd;color:#1967d2;border:1px solid #d0e1fd;}
+.related-badge.cnd{background:#f5eaff;color:#681da8;border:1px solid #e9d5ff;}
+.related-info{flex:1;min-width:0;padding:12px 14px 14px;}
+.related-title{font-size:15px;font-weight:700;color:var(--text-main);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:6px;line-height:1.4;}
+.related-desc{font-size:12.5px;color:var(--text-secondary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.5;margin-bottom:8px;}
+.related-meta{font-size:11px;color:var(--text-secondary);display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.related-more-links{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border-color);}
+.related-more-links a{font-size:12.5px;font-weight:700;color:var(--primary-blue);text-decoration:none;display:inline-flex;align-items:center;gap:5px;padding:7px 12px;background:#f0f7ff;border:1px solid #d0e1fd;border-radius:20px;}
+.related-more-links a:hover{background:#e0ecfd;}
+.related-skeleton{background:#f1f5f9;border-radius:14px;height:230px;animation:shimmer 1.2s infinite linear;background:linear-gradient(90deg,#f1f5f9 25%,#e8edf4 50%,#f1f5f9 75%);background-size:200% 100%;}
 @keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
 
 /* \u2500\u2500 Related Questions (FAQ) Section \u2500\u2500 */
@@ -1465,6 +1471,10 @@ ${faqSectionHtml}
         <div class="related-skeleton"></div>
         <div class="related-skeleton"></div>
         <div class="related-skeleton"></div>
+    </div>
+    <div class="related-more-links">
+        <a href="${SITE_URL}/"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg> Browse All Jobs</a>
+        <a href="${SITE_URL}/notes"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg> Latest Health Updates</a>
     </div>
 </div>
 </div>
@@ -2038,17 +2048,20 @@ async function loadRelatedJobs() {
             const isEmp = p.posterRole === "employer";
             const pPic = p.posterPic || \`https://ui-avatars.com/api/?name=\${encodeURIComponent(p.posterName||'U')}&background=0a66c2&color=fff\`;
             const thumb = p.thumb || pPic;
+            const descSnippet = p.desc ? p.desc.replace(/</g,'&lt;') : '';
             return \`<a class="related-card" href="/jobs/\${p.id}">
-                <img class="related-thumb" src="\${thumb}" onerror="this.src='\${pPic}'" alt="" loading="lazy">
+                <div class="related-thumb-wrap">
+                    <img class="related-thumb" src="\${thumb}" onerror="this.src='\${pPic}'" alt="" loading="lazy">
+                    <span class="related-badge \${isEmp?'emp':'cnd'}">\${isEmp?'Hiring':'Candidate'}</span>
+                </div>
                 <div class="related-info">
                     <div class="related-title">\${p.title.replace(/</g,'&lt;')}</div>
+                    \${descSnippet ? \`<div class="related-desc">\${descSnippet}</div>\` : ""}
                     <div class="related-meta">
-                        <span class="related-badge \${isEmp?'emp':'cnd'}">\${isEmp?'Hiring':'Candidate'}</span>
                         \${p.location?'<span>\u{1F4CD} '+p.location+'</span>':""}
                         \${p.salary?'<span>&middot; '+p.salary+'</span>':""}
                     </div>
                 </div>
-                <svg class="related-arrow" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
             </a>\`;
         }).join("");
     } catch(err) {
