@@ -1100,6 +1100,8 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
 .page-breadcrumb .crumb-sep{margin:0 6px;color:#c7cdd6;}
 .page-disclaimer{font-size:12.5px;color:var(--text-secondary);line-height:1.6;margin:10px 0 2px;padding-top:12px;border-top:1px solid var(--border-color);}
 .details-card{background:var(--bg-white);border-radius:12px;border:1px solid var(--border-color);box-shadow:0 2px 4px rgba(0,0,0,0.02);padding:25px;margin-top:10px;}
+.user-section{display:flex;align-items:center;gap:15px;margin-bottom:25px;padding-bottom:20px;border-bottom:1px solid #f1f1f1;}
+.user-avatar{width:60px;height:60px;border-radius:50%;object-fit:cover;border:1px solid var(--border-color);}
 .user-details{flex:1;}
 .user-name{font-size:18px;font-weight:700;color:var(--text-main);margin-bottom:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 .role-badge{font-size:10px;padding:4px 8px;border-radius:12px;text-transform:uppercase;font-weight:800;}
