@@ -1292,6 +1292,63 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
 </head>
 <body>
 
+<!-- Pull to Refresh -->
+<div id="ptr-indicator" style="position:fixed;top:0;left:0;right:0;z-index:9999;display:flex;justify-content:center;align-items:center;height:0;overflow:hidden;transition:height 0.2s ease;background:transparent;pointer-events:none;">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding-bottom:8px;">
+    <div id="ptr-spinner" style="width:28px;height:28px;border:3px solid #e2e8f0;border-top:3px solid #0a66c2;border-radius:50%;animation:ptrSpin 0.7s linear infinite;display:none;"></div>
+    <div id="ptr-arrow" style="width:22px;height:22px;transition:transform 0.2s ease;">
+      <svg viewBox="0 0 24 24" fill="#0a66c2"><path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"/></svg>
+    </div>
+    <div id="ptr-text" style="font-size:11px;color:#64748b;font-weight:600;letter-spacing:0.3px;">Pull to refresh</div>
+  </div>
+</div>
+<style>
+@keyframes ptrSpin { 100% { transform: rotate(360deg); } }
+</style>
+<script>
+(function(){
+  var startY=0, pulling=false, triggered=false;
+  var ind=document.getElementById('ptr-indicator');
+  var spinner=document.getElementById('ptr-spinner');
+  var arrow=document.getElementById('ptr-arrow');
+  var txt=document.getElementById('ptr-text');
+  var threshold=65;
+  document.addEventListener('touchstart',function(e){
+    if(window.scrollY===0){ startY=e.touches[0].clientY; pulling=true; triggered=false; }
+  },{passive:true});
+  document.addEventListener('touchmove',function(e){
+    if(!pulling) return;
+    var dy=e.touches[0].clientY - startY;
+    if(dy<0){ pulling=false; return; }
+    var pull=Math.min(dy*0.45, 80);
+    ind.style.height=pull+'px';
+    if(pull>=threshold && !triggered){
+      arrow.style.display='none';
+      spinner.style.display='block';
+      txt.textContent='Refreshing...';
+      triggered=true;
+    } else if(pull<threshold){
+      arrow.style.display='block';
+      spinner.style.display='none';
+      arrow.style.transform='rotate('+(pull/threshold*180)+'deg)';
+      txt.textContent='Pull to refresh';
+    }
+  },{passive:true});
+  document.addEventListener('touchend',function(){
+    if(!pulling) return;
+    pulling=false;
+    if(triggered){
+      setTimeout(function(){ window.location.reload(); },300);
+    } else {
+      ind.style.height='0';
+      arrow.style.transform='rotate(0deg)';
+      spinner.style.display='none';
+      txt.textContent='Pull to refresh';
+    }
+  },{passive:true});
+})();
+</script>
+
 <header>
 <button class="back-btn" onclick="window.location.href='https://healthjobportal.com/'">
         <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
@@ -1381,14 +1438,6 @@ ${isEmployer ? `<div style="background:#fff7ed;border:1px solid #fed7aa;border-r
     <div style="font-size:12px;color:#c2410c;line-height:1.55;">Please contact this employer carefully and never pay any money to apply for or accept a job. Health Jobs Portal is not responsible for any fraud, scam, or financial loss related to this post.</div>
   </div>
 </div>` : ""}
-<!-- CV Maker Promo Note -->
-<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px 16px;margin:14px 0;display:flex;align-items:center;gap:12px;">
-  <span style="font-size:28px;">\u{1F4C4}</span>
-  <div>
-    <div style="font-size:13px;font-weight:700;color:#166534;margin-bottom:3px;">Don't have a CV yet?</div>
-    <div style="font-size:12px;color:#15803d;line-height:1.5;">Create a professional CV for free - Click on <a href="https://healthjobportal.com/cv-maker.html" style="color:#166534;font-weight:800;text-decoration:underline;">CV Maker</a></div>
-  </div>
-</div>
 <!-- Share Buttons Row -->
 <div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;">
 ${whatsapp ? `<div onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','whatsappClicks'); window.open('https://wa.me/${waNumber}?text=${waMsg}','_blank'); })" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#25D366;color:white;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>WhatsApp</div>` : ""}
@@ -2821,6 +2870,63 @@ main{width:100%;padding:0 10px;}
 </head>
 <body>
 
+<!-- Pull to Refresh -->
+<div id="ptr-indicator" style="position:fixed;top:0;left:0;right:0;z-index:9999;display:flex;justify-content:center;align-items:center;height:0;overflow:hidden;transition:height 0.2s ease;background:transparent;pointer-events:none;">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding-bottom:8px;">
+    <div id="ptr-spinner" style="width:28px;height:28px;border:3px solid #e2e8f0;border-top:3px solid #0a66c2;border-radius:50%;animation:ptrSpin 0.7s linear infinite;display:none;"></div>
+    <div id="ptr-arrow" style="width:22px;height:22px;transition:transform 0.2s ease;">
+      <svg viewBox="0 0 24 24" fill="#0a66c2"><path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"/></svg>
+    </div>
+    <div id="ptr-text" style="font-size:11px;color:#64748b;font-weight:600;letter-spacing:0.3px;">Pull to refresh</div>
+  </div>
+</div>
+<style>
+@keyframes ptrSpin { 100% { transform: rotate(360deg); } }
+</style>
+<script>
+(function(){
+  var startY=0, pulling=false, triggered=false;
+  var ind=document.getElementById('ptr-indicator');
+  var spinner=document.getElementById('ptr-spinner');
+  var arrow=document.getElementById('ptr-arrow');
+  var txt=document.getElementById('ptr-text');
+  var threshold=65;
+  document.addEventListener('touchstart',function(e){
+    if(window.scrollY===0){ startY=e.touches[0].clientY; pulling=true; triggered=false; }
+  },{passive:true});
+  document.addEventListener('touchmove',function(e){
+    if(!pulling) return;
+    var dy=e.touches[0].clientY - startY;
+    if(dy<0){ pulling=false; return; }
+    var pull=Math.min(dy*0.45, 80);
+    ind.style.height=pull+'px';
+    if(pull>=threshold && !triggered){
+      arrow.style.display='none';
+      spinner.style.display='block';
+      txt.textContent='Refreshing...';
+      triggered=true;
+    } else if(pull<threshold){
+      arrow.style.display='block';
+      spinner.style.display='none';
+      arrow.style.transform='rotate('+(pull/threshold*180)+'deg)';
+      txt.textContent='Pull to refresh';
+    }
+  },{passive:true});
+  document.addEventListener('touchend',function(){
+    if(!pulling) return;
+    pulling=false;
+    if(triggered){
+      setTimeout(function(){ window.location.reload(); },300);
+    } else {
+      ind.style.height='0';
+      arrow.style.transform='rotate(0deg)';
+      spinner.style.display='none';
+      txt.textContent='Pull to refresh';
+    }
+  },{passive:true});
+})();
+</script>
+
 <header>
 <button class="back-btn" onclick="window.location.href='https://healthjobportal.com/'">
         <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
@@ -2856,21 +2962,6 @@ ${title ? `<div class="update-title">${e(title)}</div>` : ""}
 ${desc ? `<div class="update-desc">${desc}</div>` : ""}
 
     ${extLinkHtml}
-    <!-- Medical ID Card Promo -->
-<div style="background:linear-gradient(135deg,#eff6ff 0%,#f0fdf4 100%);border:1px solid #bfdbfe;border-radius:14px;padding:16px 18px;margin:16px 0;">
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-    <span style="font-size:26px;">\u{1FAAA}</span>
-<div style="font-size:14px;font-weight:800;color:#1e40af;">Generate Your Medical ID Card - Completely Free!</div>
-  </div>
-  <div style="font-size:13px;color:#334155;line-height:1.6;margin-bottom:12px;">
-    A professional Digital Medical ID is your identity. Share it with hospitals, clinics and colleagues - ready in just a few seconds.
-  </div>
-  <a href="https://healthjobportal.com/id" style="display:inline-flex;align-items:center;gap:8px;background:#2563eb;color:white;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:700;text-decoration:none;">
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="white"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V6h16v12zM6 10h2v2H6zm0 4h8v2H6zm10 0h2v2h-2zm-6-4h8v2h-8z"/></svg>
-    Generate Medical ID Card
-  </a>
-</div>
-
 <div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;align-items:center;">
 ${whatsappBtn}
 ${callBtn}
@@ -3699,6 +3790,64 @@ main{width:100%;padding:16px 12px;}
 </style>
 </head>
 <body>
+
+<!-- Pull to Refresh -->
+<div id="ptr-indicator" style="position:fixed;top:0;left:0;right:0;z-index:9999;display:flex;justify-content:center;align-items:center;height:0;overflow:hidden;transition:height 0.2s ease;background:transparent;pointer-events:none;">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding-bottom:8px;">
+    <div id="ptr-spinner" style="width:28px;height:28px;border:3px solid #e2e8f0;border-top:3px solid #0a66c2;border-radius:50%;animation:ptrSpin 0.7s linear infinite;display:none;"></div>
+    <div id="ptr-arrow" style="width:22px;height:22px;transition:transform 0.2s ease;">
+      <svg viewBox="0 0 24 24" fill="#0a66c2"><path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"/></svg>
+    </div>
+    <div id="ptr-text" style="font-size:11px;color:#64748b;font-weight:600;letter-spacing:0.3px;">Pull to refresh</div>
+  </div>
+</div>
+<style>
+@keyframes ptrSpin { 100% { transform: rotate(360deg); } }
+</style>
+<script>
+(function(){
+  var startY=0, pulling=false, triggered=false;
+  var ind=document.getElementById('ptr-indicator');
+  var spinner=document.getElementById('ptr-spinner');
+  var arrow=document.getElementById('ptr-arrow');
+  var txt=document.getElementById('ptr-text');
+  var threshold=65;
+  document.addEventListener('touchstart',function(e){
+    if(window.scrollY===0){ startY=e.touches[0].clientY; pulling=true; triggered=false; }
+  },{passive:true});
+  document.addEventListener('touchmove',function(e){
+    if(!pulling) return;
+    var dy=e.touches[0].clientY - startY;
+    if(dy<0){ pulling=false; return; }
+    var pull=Math.min(dy*0.45, 80);
+    ind.style.height=pull+'px';
+    if(pull>=threshold && !triggered){
+      arrow.style.display='none';
+      spinner.style.display='block';
+      txt.textContent='Refreshing...';
+      triggered=true;
+    } else if(pull<threshold){
+      arrow.style.display='block';
+      spinner.style.display='none';
+      arrow.style.transform='rotate('+(pull/threshold*180)+'deg)';
+      txt.textContent='Pull to refresh';
+    }
+  },{passive:true});
+  document.addEventListener('touchend',function(){
+    if(!pulling) return;
+    pulling=false;
+    if(triggered){
+      setTimeout(function(){ window.location.reload(); },300);
+    } else {
+      ind.style.height='0';
+      arrow.style.transform='rotate(0deg)';
+      spinner.style.display='none';
+      txt.textContent='Pull to refresh';
+    }
+  },{passive:true});
+})();
+</script>
+
 <header>
 <button class="back-btn" onclick="window.location.href='https://healthjobportal.com/'">
         <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
