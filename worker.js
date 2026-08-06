@@ -1576,7 +1576,7 @@ ${faqSectionHtml}
 </div>
 <script type="module">
 import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getAuth, setPersistence, indexedDBLocalPersistence, browserLocalPersistence, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, updateDoc, arrayUnion, arrayRemove, collection, query, where, orderBy, onSnapshot, addDoc, deleteDoc, getDocs, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -1590,6 +1590,17 @@ const firebaseConfig = {
 const fireApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(fireApp);
 const db = getFirestore(fireApp);
+
+// CRITICAL FIX: Capacitor/APK WebView mein session reliably persist karne ke liye
+// (login.html jaisa hi fix, taake dono pages ek jaisi persistence use karein)
+(async () => {
+    try {
+        await setPersistence(auth, indexedDBLocalPersistence);
+    } catch (e) {
+        try { await setPersistence(auth, browserLocalPersistence); } catch (e2) {}
+    }
+})();
+
 const POST_ID = ${JSON.stringify(post._docId || slug)};
 let currentUser = undefined;
 let currentUserProfile = null;
@@ -2962,7 +2973,7 @@ ${chatBtn}
 
 <script type="module">
 import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getAuth, setPersistence, indexedDBLocalPersistence, browserLocalPersistence, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, updateDoc, arrayUnion, arrayRemove, collection, query, where, orderBy, onSnapshot, addDoc, deleteDoc, getDocs, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -2976,6 +2987,17 @@ const firebaseConfig = {
 const fireApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(fireApp);
 const db = getFirestore(fireApp);
+
+// CRITICAL FIX: Capacitor/APK WebView mein session reliably persist karne ke liye
+// (login.html jaisa hi fix, taake dono pages ek jaisi persistence use karein)
+(async () => {
+    try {
+        await setPersistence(auth, indexedDBLocalPersistence);
+    } catch (e) {
+        try { await setPersistence(auth, browserLocalPersistence); } catch (e2) {}
+    }
+})();
+
 const POST_ID = ${JSON.stringify(slug)};
 let currentUser = undefined;
 let currentUserProfile = null;
