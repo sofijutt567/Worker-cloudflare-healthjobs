@@ -1648,6 +1648,32 @@ const db = getFirestore(fireApp);
     } catch (e) {
         try { await setPersistence(auth, browserLocalPersistence); } catch (e2) {}
     }
+
+    // APK TOKEN FIX: Agar APK ne ?_apkt= URL mein diya hai to us se sign in karo
+    // Yeh tab hota hai jab APK (localhost origin) se healthjobportal.com page khulta hai
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const apkToken = urlParams.get('_apkt');
+        if (apkToken && !auth.currentUser) {
+            const { GoogleAuthProvider, signInWithCredential } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js");
+            const credential = GoogleAuthProvider.credential(apkToken);
+            try {
+                await signInWithCredential(auth, credential);
+            } catch(credErr) {
+                console.log('APK credential sign-in skipped:', credErr.code);
+            }
+        }
+    } catch(e) {
+        console.log('APK token sign-in skipped:', e.message);
+    }
+    // URL se token hata do — security ke liye
+    try {
+        const clean = new URL(window.location.href);
+        if (clean.searchParams.has('_apkt')) {
+            clean.searchParams.delete('_apkt');
+            window.history.replaceState({}, '', clean.toString());
+        }
+    } catch(e) {}
 })();
 
 const POST_ID = ${JSON.stringify(post._docId || slug)};
@@ -3087,6 +3113,32 @@ const db = getFirestore(fireApp);
     } catch (e) {
         try { await setPersistence(auth, browserLocalPersistence); } catch (e2) {}
     }
+
+    // APK TOKEN FIX: Agar APK ne ?_apkt= URL mein diya hai to us se sign in karo
+    // Yeh tab hota hai jab APK (localhost origin) se healthjobportal.com page khulta hai
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const apkToken = urlParams.get('_apkt');
+        if (apkToken && !auth.currentUser) {
+            const { GoogleAuthProvider, signInWithCredential } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js");
+            const credential = GoogleAuthProvider.credential(apkToken);
+            try {
+                await signInWithCredential(auth, credential);
+            } catch(credErr) {
+                console.log('APK credential sign-in skipped:', credErr.code);
+            }
+        }
+    } catch(e) {
+        console.log('APK token sign-in skipped:', e.message);
+    }
+    // URL se token hata do — security ke liye
+    try {
+        const clean = new URL(window.location.href);
+        if (clean.searchParams.has('_apkt')) {
+            clean.searchParams.delete('_apkt');
+            window.history.replaceState({}, '', clean.toString());
+        }
+    } catch(e) {}
 })();
 
 const POST_ID = ${JSON.stringify(slug)};
