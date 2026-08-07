@@ -1139,7 +1139,7 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
 .job-float-widget.jfw-hidden{display:none;}
 .jfw-close-row{display:flex;justify-content:flex-end;width:100%;}
 .jfw-close{background:#fff;color:#ef4444;border:1px solid #fecaca;font-size:11px;font-weight:800;padding:4px 10px;border-radius:14px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.12);}
-.jfw-panel{position:relative;background:#ffffff;border:1px solid #e5e7eb;border-radius:18px;box-shadow:0 8px 24px rgba(0,0,0,0.18);padding:12px 10px;display:flex;gap:12px;}
+.jfw-panel{position:relative;background:#faf9f6;border:1px solid #e5e7eb;border-radius:2px;box-shadow:0 6px 16px rgba(0,0,0,0.14);padding:12px 10px;display:flex;gap:12px;}
 .jfw-btn{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;}
 .jfw-circle{position:relative;width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 4px 10px rgba(0,0,0,0.18);transition:transform 0.2s;}
 .jfw-circle svg{width:26px;height:26px;fill:currentColor;}
@@ -2702,7 +2702,7 @@ ${(waNumber || callNumber) ? `<div id="job-float-widget" class="job-float-widget
   <div class="jfw-close-row"><span class="jfw-close" onclick="closeJobFloatWidget()">Close &#10005;</span></div>
   <div class="jfw-panel">
     <div class="jfw-tooltip" id="jfw-tooltip">
-      <span>&#128075; Apply Now</span>
+      <span>&#128075; Don't miss this job</span>
       <span class="jfw-tooltip-x" onclick="jfwStopTooltip(event)">&#10005;</span>
     </div>
     ${waNumber ? `<div class="jfw-btn" id="jfw-wa-btn" onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','whatsappClicks'); bumpJfwCount('jfw-wa-count'); window.open('https://wa.me/${e(waNumber)}?text=${waMsg}','_blank'); })">
