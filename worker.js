@@ -1135,12 +1135,12 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
 .circle-btn svg{width:24px;height:24px;fill:currentColor;}
 .btn-label{font-size:12px;font-weight:700;color:var(--text-main);}
 /* ── Job Apply Float Widget (WhatsApp / Call / Share) ── */
-.job-float-widget{position:fixed;right:14px;bottom:90px;z-index:9997;display:flex;flex-direction:column;align-items:flex-end;gap:6px;font-family:inherit;}
+.job-float-widget{position:fixed;left:0;right:0;bottom:0;width:100%;z-index:9997;display:flex;flex-direction:column;align-items:stretch;gap:0;font-family:inherit;}
 .job-float-widget.jfw-hidden{display:none;}
-.jfw-close-row{display:flex;justify-content:flex-end;width:100%;}
-.jfw-close{background:#fff;color:#ef4444;border:1px solid #fecaca;font-size:11px;font-weight:800;padding:4px 10px;border-radius:14px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.12);}
-.jfw-panel{position:relative;background:#faf9f6;border:1px solid #e5e7eb;border-radius:2px;box-shadow:0 6px 16px rgba(0,0,0,0.14);padding:12px 10px;display:flex;gap:12px;}
-.jfw-btn{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;}
+.jfw-close-row{display:flex;justify-content:flex-end;width:100%;background:#faf9f6;border-top:1px solid #e5e7eb;padding:3px 10px 0 0;box-sizing:border-box;}
+.jfw-close{background:#fff;color:#ef4444;border:1px solid #fecaca;font-size:11px;font-weight:800;padding:3px 9px;border-radius:14px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.12);}
+.jfw-panel{position:relative;width:100%;box-sizing:border-box;background:#faf9f6;border-radius:0;box-shadow:0 -6px 16px rgba(0,0,0,0.12);padding:10px 14px calc(10px + env(safe-area-inset-bottom)) 14px;display:flex;justify-content:space-evenly;gap:10px;}
+.jfw-btn{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;}
 .jfw-circle{position:relative;width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 4px 10px rgba(0,0,0,0.18);transition:transform 0.2s;}
 .jfw-circle svg{width:26px;height:26px;fill:currentColor;}
 .jfw-btn:active .jfw-circle{transform:scale(0.92);}
@@ -1151,10 +1151,10 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
 .jfw-share{background:#f97316;}
 .jfw-shake{animation:jfwShake 1.1s ease-in-out;}
 @keyframes jfwShake{0%,100%{transform:translateY(0);}20%{transform:translateY(-6px);}40%{transform:translateY(0);}60%{transform:translateY(-4px);}80%{transform:translateY(0);}}
-.jfw-tooltip{position:absolute;bottom:calc(100% + 10px);right:8px;background:#111827;color:#fff;font-size:12px;font-weight:700;padding:8px 12px;border-radius:10px;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,0.25);opacity:0;transform:translateY(6px);pointer-events:none;transition:opacity 0.35s ease,transform 0.35s ease;display:flex;align-items:center;gap:8px;}
-.jfw-tooltip::after{content:"";position:absolute;bottom:-5px;right:16px;width:10px;height:10px;background:#111827;transform:rotate(45deg);}
-.jfw-tooltip.show{opacity:1;transform:translateY(0);pointer-events:auto;}
-.jfw-tooltip-x{cursor:pointer;color:#9ca3af;font-weight:800;font-size:12px;}
+.jfw-tooltip{position:absolute;bottom:calc(100% + 14px);left:50%;transform:translateX(-50%) translateY(6px);background:#ffffff;color:#0f172a;font-size:13.5px;font-weight:700;line-height:1.35;padding:14px 30px 14px 14px;border-radius:16px;border:1px solid #eef0f2;white-space:normal;width:200px;max-width:64vw;box-shadow:0 10px 28px rgba(0,0,0,0.16);opacity:0;pointer-events:none;transition:opacity 0.35s ease,transform 0.35s ease;display:flex;align-items:flex-start;gap:8px;text-align:left;z-index:2;}
+.jfw-tooltip.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto;}
+.jfw-tooltip-icon{width:20px;height:20px;flex-shrink:0;color:#2563eb;margin-top:1px;}
+.jfw-tooltip-x{position:absolute;top:9px;right:9px;cursor:pointer;color:#9ca3af;font-weight:800;font-size:14px;line-height:1;}
 
 .btn-wa{background:var(--wa-green);}.btn-wa:hover{background:#1DA851;transform:translateY(-3px);box-shadow:0 6px 12px rgba(37,211,102,0.3);}
 .btn-call{background:var(--call-blue);}.btn-call:hover{background:#005bb5;transform:translateY(-3px);box-shadow:0 6px 12px rgba(0,120,255,0.3);}
@@ -2647,10 +2647,10 @@ function jfwStartTooltipLoop(){
     } catch(e){}
     function cycle(){
         tip.classList.add('show');
-        const panel = widget.querySelector('.jfw-panel');
-        if(panel){
-            panel.classList.add('jfw-shake');
-            setTimeout(() => panel.classList.remove('jfw-shake'), 1100);
+        const waBtn = document.getElementById('jfw-wa-btn');
+        if(waBtn){
+            waBtn.classList.add('jfw-shake');
+            setTimeout(() => waBtn.classList.remove('jfw-shake'), 1100);
         }
         const showFor = 5000 + Math.random() * 5000;
         window.__jfwTimer = setTimeout(() => {
@@ -2659,7 +2659,7 @@ function jfwStartTooltipLoop(){
             window.__jfwTimer = setTimeout(cycle, hideFor);
         }, showFor);
     }
-    window.__jfwTimer = setTimeout(cycle, 2500);
+    window.__jfwTimer = setTimeout(cycle, 2000);
 }
 jfwStartTooltipLoop();
 function openReportPopup(){ document.getElementById('report-popup').classList.add('show'); }
@@ -2701,11 +2701,12 @@ async function submitReport(){
 ${(waNumber || callNumber) ? `<div id="job-float-widget" class="job-float-widget">
   <div class="jfw-close-row"><span class="jfw-close" onclick="closeJobFloatWidget()">Close &#10005;</span></div>
   <div class="jfw-panel">
-    <div class="jfw-tooltip" id="jfw-tooltip">
-      <span>&#128075; Don't miss this job</span>
-      <span class="jfw-tooltip-x" onclick="jfwStopTooltip(event)">&#10005;</span>
-    </div>
     ${waNumber ? `<div class="jfw-btn" id="jfw-wa-btn" onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','whatsappClicks'); bumpJfwCount('jfw-wa-count'); window.open('https://wa.me/${e(waNumber)}?text=${waMsg}','_blank'); })">
+      <div class="jfw-tooltip" id="jfw-tooltip">
+        <svg class="jfw-tooltip-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
+        <span>Don't miss this job</span>
+        <span class="jfw-tooltip-x" onclick="jfwStopTooltip(event)">&#10005;</span>
+      </div>
       <div class="jfw-circle jfw-wa"><span class="jfw-count" id="jfw-wa-count">${Number(post.whatsappClicks) || 0}</span><svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg></div>
       <span class="jfw-label">WhatsApp</span>
     </div>` : ""}
@@ -2720,7 +2721,7 @@ ${(waNumber || callNumber) ? `<div id="job-float-widget" class="job-float-widget
   </div>
 </div>` : ""}
 <!-- WhatsApp Channel Float Button -->
-<div id="wa-channel-btn" onclick="window.open('https://whatsapp.com/channel/0029VbCe3Mf2kNFroj9qx223','_blank')" style="position:fixed;bottom:172px;right:16px;z-index:9998;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;animation:waBounce 2s ease-in-out infinite;">
+<div id="wa-channel-btn" onclick="window.open('https://whatsapp.com/channel/0029VbCe3Mf2kNFroj9qx223','_blank')" style="position:fixed;bottom:120px;right:16px;z-index:9998;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;animation:waBounce 2s ease-in-out infinite;">
   <div style="background:#25D366;width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(37,211,102,0.5);">
     <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
   </div>
