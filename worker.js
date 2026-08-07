@@ -1036,6 +1036,8 @@ async function buildPostPage(post, slug, verified = false, env) {
   }
   const callNumber = localNum.trim();
   const waMsg = encodeURIComponent(`Hi, I saw your post "${title}" on Health Jobs Portal and I am interested.`);
+  const applyAssistFee = post.applyAssistFee != null && Number(post.applyAssistFee) > 0 ? Number(post.applyAssistFee) : null;
+  const applyAssistFeeHtml = applyAssistFee ? `<div class="apply-assist-fee">Fee: Rs. ${applyAssistFee.toLocaleString("en-US")}</div>` : `<div class="apply-assist-fee">Service Fee Applies</div>`;
   let mediaHtml = "";
   if (media.length > 0) {
     mediaHtml = '<div class="media-container">' + media.map((m) => {
@@ -1046,7 +1048,7 @@ async function buildPostPage(post, slug, verified = false, env) {
     }).join("") + "</div>";
   }
   const extLinkHtml = extLink.trim() ? `<div onclick="requireAuth(async function(){ await trackClick('${e(slug)}','linkClicks'); window.open('${e(extLink)}','_blank'); })" style="display:inline-flex;align-items:center;gap:8px;margin-top:10px;margin-bottom:5px;padding:10px 16px;background:#f0f7ff;border:1px solid #d0e1fd;border-radius:8px;text-decoration:none;color:#1967d2;font-size:14px;font-weight:600;cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="#1967d2"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>Apply Now</div>` : "";
-  const whatsappBtn = waNumber ? `<div class="circle-btn-wrapper" style="cursor:pointer;" onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','whatsappClicks'); window.open('https://wa.me/${e(waNumber)}?text=${waMsg}','_blank'); })"><div class="circle-btn btn-wa"><svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg></div><span class="btn-label">WhatsApp</span></div>` : "";
+  const whatsappBtn = waNumber ? `<div class="circle-btn-wrapper" style="cursor:pointer;" onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','whatsappClicks'); bumpStatCount('whatsapp-count-display','WhatsApp'); window.open('https://wa.me/${e(waNumber)}?text=${waMsg}','_blank'); })"><div class="circle-btn btn-wa"><svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg></div><span class="btn-label">WhatsApp</span></div>` : "";
   const callBtn = callNumber ? `<div class="circle-btn-wrapper" style="cursor:pointer;" onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','callClicks'); bumpStatCount('call-count-display','Calls'); window.location.href='tel:${e(callNumber)}'; })"><div class="circle-btn btn-call"><svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg></div><span class="btn-label">Call</span></div>` : "";
   const chatBtn = webChat && posterId ? `<div class="circle-btn-wrapper" style="cursor:pointer;" onclick="requireAuth(function(){ trackClick('${e(slug)}','chatClicks'); window.location.href='${SITE_URL}/chat.html?uid=${e(posterId)}'; })"><div class="circle-btn btn-chat"><svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg></div><span class="btn-label">Web Chat</span></div>` : "";
   let baseSalaryLd = "";
@@ -1143,9 +1145,9 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
 /* ── Job Apply Float Widget (WhatsApp / Call / Share) ── */
 .job-float-widget{position:fixed;left:0;right:0;bottom:0;width:100%;z-index:9997;display:flex;flex-direction:column;align-items:stretch;gap:0;font-family:inherit;}
 .job-float-widget.jfw-hidden{display:none;}
-.jfw-close-row{display:flex;justify-content:flex-end;width:100%;background:#faf9f6;border-top:1px solid #e5e7eb;padding:3px 10px 0 0;box-sizing:border-box;}
+.jfw-close-row{display:flex;justify-content:flex-end;width:100%;background:#fdfdfd;border-top:1px solid #e5e7eb;padding:3px 10px 0 0;box-sizing:border-box;}
 .jfw-close{background:#fff;color:#ef4444;border:1px solid #fecaca;font-size:11px;font-weight:800;padding:3px 9px;border-radius:14px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.12);}
-.jfw-panel{position:relative;width:100%;box-sizing:border-box;background:#faf9f6;border-radius:0;box-shadow:0 -6px 16px rgba(0,0,0,0.12);padding:10px 14px calc(10px + env(safe-area-inset-bottom)) 14px;display:flex;justify-content:space-evenly;gap:10px;}
+.jfw-panel{position:relative;width:100%;box-sizing:border-box;background:#fdfdfd;border-radius:0;box-shadow:0 -6px 16px rgba(0,0,0,0.12);padding:10px 14px calc(10px + env(safe-area-inset-bottom)) 14px;display:flex;justify-content:space-evenly;gap:10px;}
 .jfw-btn{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;}
 .jfw-circle{position:relative;width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 4px 10px rgba(0,0,0,0.18);transition:transform 0.2s;}
 .jfw-circle svg{width:26px;height:26px;fill:currentColor;}
@@ -1328,6 +1330,7 @@ ${post.applyAssistEnabled ? `<div id="apply-assist-modal-overlay" class="aa-moda
     <button class="aa-modal-close" onclick="closeApplyAssistModal()" aria-label="Close">&#10005;</button>
     <div class="apply-assist-urdu apply-assist-main">اگر آپ خود اپلائی کرنے کی جھنجھٹ سے بچنا چاہتے ہیں تو ابھی ہم سے رابطہ کریں</div>
     <div class="apply-assist-urdu apply-assist-sub">ہم سے اپلائی کروانے کی ایک الگ فیس ہے۔ مکمل تفصیلات جاننے اور درخواست دینے کے لیے نیچے بٹن پر کلک کریں</div>
+    ${applyAssistFeeHtml}
     <button class="apply-assist-btn" onclick="requestApplyAssist(); closeApplyAssistModal();">Apply Now</button>
   </div>
 </div>
@@ -1340,6 +1343,7 @@ ${post.applyAssistEnabled ? `<div id="apply-assist-modal-overlay" class="aa-moda
 .apply-assist-urdu{font-family:'Noto Nastaliq Urdu',serif;direction:rtl;color:#1a1a1a;}
 .apply-assist-main{font-size:19px;font-weight:700;line-height:2.2;margin-bottom:8px;}
 .apply-assist-sub{font-size:15px;font-weight:400;line-height:2.1;color:#555;margin-bottom:16px;}
+.apply-assist-fee{display:inline-block;background:#fff7e6;color:#b45309;border:1px solid #fde68a;padding:5px 16px;border-radius:20px;font-size:13.5px;font-weight:700;margin-bottom:16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}
 .apply-assist-btn{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0a66c2;color:#fff;border:none;border-radius:0;padding:10px 30px;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:0.3px;transition:background 0.15s;}
 .apply-assist-btn:hover{background:#004182;}
 .apply-assist-btn:disabled{background:#94a3b8;cursor:default;}
@@ -1499,6 +1503,7 @@ ${mediaHtml}
 ${post.applyAssistEnabled ? `<div class="apply-assist-card">
   <div class="apply-assist-urdu apply-assist-main">اگر آپ ہم سے اپلائی کروانا چاہتے ہیں تو ابھی رابطہ کریں</div>
   <div class="apply-assist-urdu apply-assist-sub">ہم سے اپلائی کروانے کی ایک الگ فیس ہے۔ مکمل تفصیلات جاننے اور درخواست دینے کے لیے نیچے بٹن پر کلک کریں</div>
+  ${applyAssistFeeHtml}
   <button class="apply-assist-btn" onclick="requestApplyAssist()">Apply Now</button>
 </div>
 <style>
@@ -1506,6 +1511,7 @@ ${post.applyAssistEnabled ? `<div class="apply-assist-card">
 .apply-assist-urdu{font-family:'Noto Nastaliq Urdu',serif;direction:rtl;color:#1a1a1a;}
 .apply-assist-main{font-size:19px;font-weight:700;line-height:2.2;margin-bottom:8px;}
 .apply-assist-sub{font-size:15px;font-weight:400;line-height:2.1;color:#555;margin-bottom:14px;}
+.apply-assist-fee{display:inline-block;background:#fff7e6;color:#b45309;border:1px solid #fde68a;padding:5px 16px;border-radius:20px;font-size:13.5px;font-weight:700;margin-bottom:14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}
 .apply-assist-btn{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0a66c2;color:#fff;border:none;border-radius:0;padding:10px 30px;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:0.3px;transition:background 0.15s;}
 .apply-assist-btn:hover{background:#004182;}
 .apply-assist-btn:disabled{background:#94a3b8;cursor:default;}
@@ -1534,7 +1540,7 @@ ${isEmployer ? `<div class="fraud-warning-card">
 </style>` : ""}
 <!-- Share Buttons Row -->
 <div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;">
-${whatsapp ? `<div onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','whatsappClicks'); window.open('https://wa.me/${waNumber}?text=${waMsg}','_blank'); })" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#25D366;color:white;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>WhatsApp</div>` : ""}
+${whatsapp ? `<div onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','whatsappClicks'); bumpStatCount('whatsapp-count-display','WhatsApp'); window.open('https://wa.me/${waNumber}?text=${waMsg}','_blank'); })" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#25D366;color:white;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>WhatsApp</div>` : ""}
 ${callNumber ? `<div onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','callClicks'); bumpStatCount('call-count-display','Calls'); window.location.href='tel:${e(callNumber)}'; })"style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#0078FF;color:white;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>Call</div>` : ""}
 <div onclick="openReportPopup()" style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;background:#fff0f0;color:#ef4444;border:1px solid #fecaca;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;"><svg width="12" height="12" viewBox="0 0 24 24" fill="#ef4444"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>Report</div>
 </div>
@@ -1573,6 +1579,7 @@ ${city ? `
         <span id="cmt-count-display">0 Comments</span>
         <span id="share-count-display" data-count="${Number(post.shares) || 0}">${fmtK(Number(post.shares) || 0)} Shares</span>
         <span id="call-count-display" data-count="${Number(post.callClicks) || 0}">${fmtK(Number(post.callClicks) || 0)} Calls</span>
+        <span id="whatsapp-count-display" data-count="${Number(post.whatsappClicks) || 0}">${fmtK(Number(post.whatsappClicks) || 0)} WhatsApp</span>
     </div>
 
     <!-- Action Buttons -->
@@ -2677,38 +2684,12 @@ document.addEventListener('keydown', e => { if(e.key === 'Escape') closeLightbox
     update();
 })();
 
-/* ── Apply Assist (calls a separate Worker once built — see ApplyAssist Worker URL below) ── */
-const APPLY_ASSIST_WORKER_URL = "https://REPLACE-WITH-APPLY-ASSIST-WORKER-URL.workers.dev/api/apply-request"; // TODO: set the real Worker URL once it's built
-async function requestApplyAssist(){
+/* ── Apply Assist (redirects candidate to the separate Apply Assist Worker) ── */
+const APPLY_ASSIST_WORKER_URL = "https://resolve.sufiangsufiang50.workers.dev";
+function requestApplyAssist(){
     const btn = document.querySelector('.apply-assist-btn');
-    if(btn){ btn.disabled = true; btn.textContent = 'Sending...'; }
-    try {
-        await fetch(APPLY_ASSIST_WORKER_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                postId: POST_ID,
-                slug: ${JSON.stringify(slug)},
-                title: ${JSON.stringify(title)},
-                category: ${JSON.stringify(category)},
-                city: ${JSON.stringify(city)},
-                address: ${JSON.stringify(address)},
-                salary: ${JSON.stringify(salary)},
-                shift: ${JSON.stringify(shift)},
-                experience: ${JSON.stringify(experience)},
-                employmentType: ${JSON.stringify(empType)},
-                posterName: ${JSON.stringify(posterName)},
-                posterId: ${JSON.stringify(posterId)},
-                jobUrl: ${JSON.stringify(canonicalUrl)},
-                requestedAt: new Date().toISOString()
-            })
-        });
-        if(btn){ btn.textContent = 'Request Sent ✓'; }
-    } catch(e){
-        console.log('Apply assist error:', e);
-        if(btn){ btn.disabled = false; btn.textContent = 'Apply Now'; }
-        alert('Something went wrong. Please try again.');
-    }
+    if(btn){ btn.disabled = true; btn.textContent = 'Loading...'; }
+    window.location.href = APPLY_ASSIST_WORKER_URL + '/apply?job=' + encodeURIComponent(${JSON.stringify(slug)});
 }
 
 function formatK(n){
@@ -2779,16 +2760,20 @@ function jfwStartTooltipLoop(){
             waBtn.classList.add('jfw-shake');
             setTimeout(() => waBtn.classList.remove('jfw-shake'), 1100);
         }
-        const showFor = 5000 + Math.random() * 5000;
+        const showFor = 2500;
         window.__jfwTimer = setTimeout(() => {
             tip.classList.remove('show');
             const hideFor = 4000 + Math.random() * 1000;
             window.__jfwTimer = setTimeout(cycle, hideFor);
         }, showFor);
     }
-    window.__jfwTimer = setTimeout(cycle, 2000);
+    window.__jfwTimer = setTimeout(cycle, 1500);
 }
-jfwStartTooltipLoop();
+if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', jfwStartTooltipLoop);
+} else {
+    jfwStartTooltipLoop();
+}
 function openReportPopup(){ document.getElementById('report-popup').classList.add('show'); }
 function closeReport(){ document.getElementById('report-popup').classList.remove('show'); }
 function selectReason(el){
@@ -2833,7 +2818,7 @@ ${(waNumber || callNumber) ? `<div id="job-float-widget" class="job-float-widget
   </div>` : ""}
   <div class="jfw-close-row"><span class="jfw-close" onclick="closeJobFloatWidget()">Close &#10005;</span></div>
   <div class="jfw-panel">
-    ${waNumber ? `<div class="jfw-btn" id="jfw-wa-btn" onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','whatsappClicks'); bumpJfwCount('jfw-wa-count'); window.open('https://wa.me/${e(waNumber)}?text=${waMsg}','_blank'); })">
+    ${waNumber ? `<div class="jfw-btn" id="jfw-wa-btn" onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','whatsappClicks'); bumpJfwCount('jfw-wa-count'); bumpStatCount('whatsapp-count-display','WhatsApp'); window.open('https://wa.me/${e(waNumber)}?text=${waMsg}','_blank'); })">
       <div class="jfw-circle jfw-wa"><span class="jfw-count" id="jfw-wa-count" data-count="${Number(post.whatsappClicks) || 0}">${fmtK(Number(post.whatsappClicks) || 0)}</span><svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg></div>
       <span class="jfw-label">WhatsApp</span>
     </div>` : ""}
