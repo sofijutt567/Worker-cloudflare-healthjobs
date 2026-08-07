@@ -1134,6 +1134,28 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
 .circle-btn{width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;box-shadow:0 4px 10px rgba(0,0,0,0.15);transition:0.3s;border:none;cursor:pointer;}
 .circle-btn svg{width:24px;height:24px;fill:currentColor;}
 .btn-label{font-size:12px;font-weight:700;color:var(--text-main);}
+/* ── Job Apply Float Widget (WhatsApp / Call / Share) ── */
+.job-float-widget{position:fixed;right:14px;bottom:90px;z-index:9997;display:flex;flex-direction:column;align-items:flex-end;gap:6px;font-family:inherit;}
+.job-float-widget.jfw-hidden{display:none;}
+.jfw-close-row{display:flex;justify-content:flex-end;width:100%;}
+.jfw-close{background:#fff;color:#ef4444;border:1px solid #fecaca;font-size:11px;font-weight:800;padding:4px 10px;border-radius:14px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.12);}
+.jfw-panel{position:relative;background:#ffffff;border:1px solid #e5e7eb;border-radius:18px;box-shadow:0 8px 24px rgba(0,0,0,0.18);padding:12px 10px;display:flex;gap:12px;}
+.jfw-btn{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;}
+.jfw-circle{position:relative;width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 4px 10px rgba(0,0,0,0.18);transition:transform 0.2s;}
+.jfw-circle svg{width:26px;height:26px;fill:currentColor;}
+.jfw-btn:active .jfw-circle{transform:scale(0.92);}
+.jfw-label{font-size:11px;font-weight:700;color:var(--text-main);}
+.jfw-count{position:absolute;top:-6px;right:-6px;background:#1e293b;color:#fff;font-size:10px;font-weight:800;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px;box-shadow:0 2px 5px rgba(0,0,0,0.25);}
+.jfw-wa{background:#25D366;}
+.jfw-call{background:#0078FF;}
+.jfw-share{background:#f97316;}
+.jfw-shake{animation:jfwShake 1.1s ease-in-out;}
+@keyframes jfwShake{0%,100%{transform:translateY(0);}20%{transform:translateY(-6px);}40%{transform:translateY(0);}60%{transform:translateY(-4px);}80%{transform:translateY(0);}}
+.jfw-tooltip{position:absolute;bottom:calc(100% + 10px);right:8px;background:#111827;color:#fff;font-size:12px;font-weight:700;padding:8px 12px;border-radius:10px;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,0.25);opacity:0;transform:translateY(6px);pointer-events:none;transition:opacity 0.35s ease,transform 0.35s ease;display:flex;align-items:center;gap:8px;}
+.jfw-tooltip::after{content:"";position:absolute;bottom:-5px;right:16px;width:10px;height:10px;background:#111827;transform:rotate(45deg);}
+.jfw-tooltip.show{opacity:1;transform:translateY(0);pointer-events:auto;}
+.jfw-tooltip-x{cursor:pointer;color:#9ca3af;font-weight:800;font-size:12px;}
+
 .btn-wa{background:var(--wa-green);}.btn-wa:hover{background:#1DA851;transform:translateY(-3px);box-shadow:0 6px 12px rgba(37,211,102,0.3);}
 .btn-call{background:var(--call-blue);}.btn-call:hover{background:#005bb5;transform:translateY(-3px);box-shadow:0 6px 12px rgba(0,120,255,0.3);}
 .btn-chat{background:var(--primary-blue);}.btn-chat:hover{background:var(--hover-blue);transform:translateY(-3px);box-shadow:0 6px 12px rgba(10,102,194,0.3);}
@@ -2591,6 +2613,55 @@ function sharePost(){
         alert('Link copied to clipboard!');
     }
 }
+
+/* ── Job Apply Float Widget logic ── */
+function bumpJfwCount(id){
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.innerText = (parseInt(el.innerText, 10) || 0) + 1;
+}
+function jfwShare(){
+    sharePost();
+    trackClick(POST_ID, 'shares');
+    bumpJfwCount('jfw-share-count');
+}
+function closeJobFloatWidget(){
+    const w = document.getElementById('job-float-widget');
+    if(!w) return;
+    w.classList.add('jfw-hidden');
+    if(window.__jfwTimer) clearTimeout(window.__jfwTimer);
+    try { sessionStorage.setItem('jfwClosed', '1'); } catch(e){}
+}
+function jfwStopTooltip(event){
+    if(event) event.stopPropagation();
+    const tip = document.getElementById('jfw-tooltip');
+    if(tip) tip.classList.remove('show');
+    if(window.__jfwTimer) clearTimeout(window.__jfwTimer);
+}
+function jfwStartTooltipLoop(){
+    const widget = document.getElementById('job-float-widget');
+    const tip = document.getElementById('jfw-tooltip');
+    if(!widget || !tip) return;
+    try {
+        if(sessionStorage.getItem('jfwClosed') === '1'){ widget.classList.add('jfw-hidden'); return; }
+    } catch(e){}
+    function cycle(){
+        tip.classList.add('show');
+        const panel = widget.querySelector('.jfw-panel');
+        if(panel){
+            panel.classList.add('jfw-shake');
+            setTimeout(() => panel.classList.remove('jfw-shake'), 1100);
+        }
+        const showFor = 5000 + Math.random() * 5000;
+        window.__jfwTimer = setTimeout(() => {
+            tip.classList.remove('show');
+            const hideFor = 4000 + Math.random() * 1000;
+            window.__jfwTimer = setTimeout(cycle, hideFor);
+        }, showFor);
+    }
+    window.__jfwTimer = setTimeout(cycle, 2500);
+}
+jfwStartTooltipLoop();
 function openReportPopup(){ document.getElementById('report-popup').classList.add('show'); }
 function closeReport(){ document.getElementById('report-popup').classList.remove('show'); }
 function selectReason(el){
@@ -2626,8 +2697,30 @@ async function submitReport(){
     }
 }
 <\/script>
+<!-- Job Apply Float Widget: WhatsApp / Call / Share -->
+${(waNumber || callNumber) ? `<div id="job-float-widget" class="job-float-widget">
+  <div class="jfw-close-row"><span class="jfw-close" onclick="closeJobFloatWidget()">Close &#10005;</span></div>
+  <div class="jfw-panel">
+    <div class="jfw-tooltip" id="jfw-tooltip">
+      <span>&#128075; Apply Now</span>
+      <span class="jfw-tooltip-x" onclick="jfwStopTooltip(event)">&#10005;</span>
+    </div>
+    ${waNumber ? `<div class="jfw-btn" id="jfw-wa-btn" onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','whatsappClicks'); bumpJfwCount('jfw-wa-count'); window.open('https://wa.me/${e(waNumber)}?text=${waMsg}','_blank'); })">
+      <div class="jfw-circle jfw-wa"><span class="jfw-count" id="jfw-wa-count">${Number(post.whatsappClicks) || 0}</span><svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg></div>
+      <span class="jfw-label">WhatsApp</span>
+    </div>` : ""}
+    ${callNumber ? `<div class="jfw-btn" id="jfw-call-btn" onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','callClicks'); bumpJfwCount('jfw-call-count'); window.location.href='tel:${e(callNumber)}'; })">
+      <div class="jfw-circle jfw-call"><span class="jfw-count" id="jfw-call-count">${Number(post.callClicks) || 0}</span><svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg></div>
+      <span class="jfw-label">Call</span>
+    </div>` : ""}
+    <div class="jfw-btn" id="jfw-share-btn" onclick="jfwShare()">
+      <div class="jfw-circle jfw-share"><span class="jfw-count" id="jfw-share-count">${Number(post.shares) || 0}</span><svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg></div>
+      <span class="jfw-label">Share</span>
+    </div>
+  </div>
+</div>` : ""}
 <!-- WhatsApp Channel Float Button -->
-<div id="wa-channel-btn" onclick="window.open('https://whatsapp.com/channel/0029VbCe3Mf2kNFroj9qx223','_blank')" style="position:fixed;bottom:90px;right:16px;z-index:9998;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;animation:waBounce 2s ease-in-out infinite;">
+<div id="wa-channel-btn" onclick="window.open('https://whatsapp.com/channel/0029VbCe3Mf2kNFroj9qx223','_blank')" style="position:fixed;bottom:172px;right:16px;z-index:9998;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;animation:waBounce 2s ease-in-out infinite;">
   <div style="background:#25D366;width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(37,211,102,0.5);">
     <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
   </div>
