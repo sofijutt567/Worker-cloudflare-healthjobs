@@ -147,17 +147,40 @@ var worker_default = {
         const slug = body.slug;
         const type = body.type || "both";
         const deleted = [];
+        const purgeUrls = [];
         if (type === "general_post" || type === "both") {
           await env.JOBS_KV.delete(`update:${slug}`);
           deleted.push(`update:${slug}`);
+          purgeUrls.push(`${SITE_URL}/updates/${slug}`);
         }
         if (type === "employer_post" || type === "candidate_post" || type === "both") {
           await env.JOBS_KV.delete(`job:${slug}`);
           deleted.push(`job:${slug}`);
+          purgeUrls.push(`${SITE_URL}/jobs/${slug}`);
         }
         if (type === "medical_note" || type === "both") {
           await env.JOBS_KV.delete(`note:${slug}`);
           deleted.push(`note:${slug}`);
+          purgeUrls.push(`${SITE_URL}/notes/${slug}`);
+        }
+        // ── Edge/CDN cache purge (defense-in-depth) ──────────────────────
+        // The KV delete above only clears this Worker's own cache layer.
+        // If Cloudflare's zone cache (e.g. a "Cache Everything" rule) is also
+        // caching these HTML responses at the edge, KV alone won't fix
+        // staleness — this explicitly evicts those edge-cached entries too.
+        const edgePurged = [];
+        try {
+          const cache = caches.default;
+          await Promise.all(purgeUrls.map(async (u) => {
+            try {
+              const wasCached = await cache.delete(u);
+              if (wasCached) edgePurged.push(u);
+            } catch (e) {
+              console.error("Edge cache purge error:", u, e);
+            }
+          }));
+        } catch (e) {
+          console.error("Edge cache purge unavailable:", e);
         }
         const indexingPromises = [];
         if (type === "general_post") {
@@ -180,7 +203,8 @@ var worker_default = {
         return new Response(JSON.stringify({
           success: true,
           message: "Cache cleared + Google notified",
-          deleted
+          deleted,
+          edgePurged
         }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" }
