@@ -63,6 +63,7 @@ var SITE_URL = "https://healthjobportal.com";
 var SITE_NAME = "Health Jobs Portal";
 var FALLBACK_IMG = `${SITE_URL}/images/logo.png`;
 var NOTIFY_API_URL = "https://notication-healthjobs.vercel.app";
+var MIN_INDEXABLE_CHARS = 1000;
 var AI_CHAT_RATE_LIMIT_WINDOW_MS = 60 * 1e3;
 var AI_CHAT_RATE_LIMIT_MAX = 8;
 var AI_CHAT_RATE_LIMIT_MIN_GAP_MS = 2500;
@@ -469,6 +470,27 @@ var worker_default = {
         return new Response(JSON.stringify({ success: false, error: e.message }), {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+    }
+    if (url.pathname === "/api/is-verified" && request.method === "GET") {
+      try {
+        const uid = url.searchParams.get("uid") || "";
+        if (!uid) {
+          return new Response(JSON.stringify({ verified: false }), {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" }
+          });
+        }
+        const verified = await isUserVerified(uid, env);
+        return new Response(JSON.stringify({ verified }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" }
+        });
+      } catch (e) {
+        return new Response(JSON.stringify({ verified: false }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" }
         });
       }
     }
@@ -1103,7 +1125,7 @@ ${city ? `"postalCode":"00000",` : ""}
 <title>${e(pageTitle)}</title>
 <meta name="description" content="${e(metaDesc)}">
 <meta name="keywords" content="${e(category)}, healthcare jobs Pakistan, ${e(city)} jobs, medical jobs">
-<meta name="robots" content="${tempDesc.length < 100 ? "noindex, follow" : "index, follow, max-snippet:-1, max-image-preview:large"}">
+<meta name="robots" content="${tempDesc.length < MIN_INDEXABLE_CHARS ? "noindex, follow" : "index, follow, max-snippet:-1, max-image-preview:large"}">
 <link rel="canonical" href="${e(canonicalUrl)}">
 <meta property="og:type" content="article">
 <meta property="og:url" content="${e(canonicalUrl)}">
@@ -1464,7 +1486,7 @@ document.addEventListener('DOMContentLoaded', function(){
             <div class="user-name">
                 ${e(posterName)}
                 <span class="role-badge ${badgeClass}">${roleText}</span>
-                ${verified ? '<span style="display:inline-flex;align-items:center;justify-content:center;background:#0a66c2;border-radius:50%;width:18px;height:18px;margin-left:2px;border:2px solid #fff;flex-shrink:0;"><svg viewBox="0 0 24 24" width="10" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>' : ""}
+                <span id="hjp-verify-badge" data-uid="${e(posterId)}" style="display:${verified ? "inline-flex" : "none"};align-items:center;justify-content:center;background:#0a66c2;border-radius:50%;width:18px;height:18px;margin-left:2px;border:2px solid #fff;flex-shrink:0;"><svg viewBox="0 0 24 24" width="10" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
             </div>
             <div class="post-time">${e(city)} &bull; Posted on ${formattedDate}</div>
         </div>
@@ -2874,6 +2896,18 @@ ${(waNumber || callNumber) ? `<div id="job-float-widget" class="job-float-widget
   50% { transform: translateY(-8px); }
 }
 </style>
+<script>
+(function(){
+  var b = document.getElementById('hjp-verify-badge');
+  if (!b) return;
+  var uid = b.getAttribute('data-uid');
+  if (!uid) return;
+  fetch('/api/is-verified?uid=' + encodeURIComponent(uid))
+    .then(function(r){ return r.json(); })
+    .then(function(d){ b.style.display = d.verified ? 'inline-flex' : 'none'; })
+    .catch(function(){});
+})();
+</script>
 </body>
 </html>`;
 }
@@ -2986,7 +3020,7 @@ function buildUpdatePage(post, slug, verified = false) {
 <meta name="description" content="${e(metaDesc)}">
 <meta name="keywords" content="medical news Pakistan, healthcare update ${e(city)}, clinical update, medical news today, ${e(posterName)}, health news Pakistan">
 <meta name="news_keywords" content="medical news, healthcare, clinical update, Pakistan health">
-<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+<meta name="robots" content="${tempDesc.length < MIN_INDEXABLE_CHARS ? "noindex, follow" : "index, follow, max-snippet:-1, max-image-preview:large"}">
 <link rel="canonical" href="${e(canonicalUrl)}">
 <meta property="og:type" content="article">
 <meta property="og:url" content="${e(canonicalUrl)}">
@@ -3205,7 +3239,7 @@ main{width:100%;padding:0 10px;}
              onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(posterName)}&background=0a66c2&color=fff'">
 </a>
         <div class="user-details">
-            <div class="user-name">${e(posterName)}${verified ? '<span style="display:inline-flex;align-items:center;justify-content:center;background:#0a66c2;border-radius:50%;width:18px;height:18px;margin-left:4px;border:2px solid #fff;flex-shrink:0;"><svg viewBox="0 0 24 24" width="10" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>' : ""}</div>
+            <div class="user-name">${e(posterName)}<span id="hjp-verify-badge" data-uid="${e(posterId)}" style="display:${verified ? "inline-flex" : "none"};align-items:center;justify-content:center;background:#0a66c2;border-radius:50%;width:18px;height:18px;margin-left:4px;border:2px solid #fff;flex-shrink:0;"><svg viewBox="0 0 24 24" width="10" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span></div>
             <div class="post-badge">\u{1FA7A} Medical Update</div>
             <div class="post-time">${e(city)} &bull; ${formattedDate}</div>
         </div>
@@ -3911,6 +3945,18 @@ function sharePost(){
   50% { transform: translateY(-8px); }
 }
 </style>
+<script>
+(function(){
+  var b = document.getElementById('hjp-verify-badge');
+  if (!b) return;
+  var uid = b.getAttribute('data-uid');
+  if (!uid) return;
+  fetch('/api/is-verified?uid=' + encodeURIComponent(uid))
+    .then(function(r){ return r.json(); })
+    .then(function(d){ b.style.display = d.verified ? 'inline-flex' : 'none'; })
+    .catch(function(){});
+})();
+</script>
 </body>
 </html>`;
 }
@@ -3921,6 +3967,7 @@ function buildNotePage(post, slug, verified = false) {
   const title = post.title || "Medical Note";
   const desc = post.desc || "";
   const posterName = post.posterName || SITE_NAME;
+  const posterId = post.posterId || "";
   const posterPic = post.posterPic || `https://ui-avatars.com/api/?name=${encodeURIComponent(posterName)}&background=2563eb&color=fff`;
   const city = post.location || "Pakistan";
   const diplomas = Array.isArray(post.diplomas) ? post.diplomas : [];
@@ -3929,6 +3976,7 @@ function buildNotePage(post, slug, verified = false) {
   const postedDate = post.createdAt || "";
   const canonicalUrl = `${SITE_URL}/notes/${slug}`;
   const pageTitle = `${title} | Medical Notes | ${SITE_NAME}`;
+  const tempDesc = desc.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
   const metaDesc = desc ? desc.replace(/\n/g, " ").trim().substring(0, 157) + (desc.length > 157 ? "..." : "") : `Medical note by ${posterName} - ${diplomas.join(", ")} | ${SITE_NAME}`;
   const ogImage = posterPic || FALLBACK_IMG;
   let formattedDate = "Recently";
@@ -4011,7 +4059,7 @@ function buildNotePage(post, slug, verified = false) {
 <meta name="keywords" content="${e(diplomas.join(", "))}, medical notes Pakistan, clinical notes, study material, ${e(posterName)}, healthcare notes, medical education">
 <meta property="og:type" content="article">
 <meta name="article:section" content="Medical Notes">
-<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+<meta name="robots" content="${tempDesc.length < MIN_INDEXABLE_CHARS ? "noindex, follow" : "index, follow, max-snippet:-1, max-image-preview:large"}">
 <link rel="canonical" href="${e(canonicalUrl)}">
 <meta property="og:type" content="article">
 <meta property="og:url" content="${e(canonicalUrl)}">
@@ -4149,7 +4197,7 @@ main{width:100%;padding:16px 12px;}
         <img class="author-avatar" src="${e(posterPic)}" alt="${e(posterName)}"
              onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(posterName)}&background=2563eb&color=fff'">
         <div>
-<div class="author-name">${e(posterName)}${verified ? '<span style="display:inline-flex;align-items:center;justify-content:center;background:#2563eb;border-radius:50%;width:18px;height:18px;margin-left:4px;border:2px solid #fff;flex-shrink:0;"><svg viewBox="0 0 24 24" width="10" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>' : ""}</div>
+<div class="author-name">${e(posterName)}<span id="hjp-verify-badge" data-uid="${e(posterId)}" style="display:${verified ? "inline-flex" : "none"};align-items:center;justify-content:center;background:#2563eb;border-radius:50%;width:18px;height:18px;margin-left:4px;border:2px solid #fff;flex-shrink:0;"><svg viewBox="0 0 24 24" width="10" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span></div>
             <div class="note-badge">\u{1F4CB} Medical Note</div>
             <div class="author-meta">${e(city)} &bull; ${formattedDate}</div>
         </div>
@@ -4308,6 +4356,18 @@ async function pdfDownload() {
   50% { transform: translateY(-8px); }
 }
 </style>
+<script>
+(function(){
+  var b = document.getElementById('hjp-verify-badge');
+  if (!b) return;
+  var uid = b.getAttribute('data-uid');
+  if (!uid) return;
+  fetch('/api/is-verified?uid=' + encodeURIComponent(uid))
+    .then(function(r){ return r.json(); })
+    .then(function(d){ b.style.display = d.verified ? 'inline-flex' : 'none'; })
+    .catch(function(){});
+})();
+</script>
 </body>
 </html>`;
 }
@@ -4326,7 +4386,7 @@ async function isUserVerified(posterId, env) {
     );
     const json = await res.json();
     const isVerified = json.fields?.isVerified?.booleanValue === true;
-    await env.JOBS_KV.put(cacheKey, isVerified ? "1" : "0", { expirationTtl: 604800 });
+    await env.JOBS_KV.put(cacheKey, isVerified ? "1" : "0", { expirationTtl: 3600 });
     return isVerified;
   } catch (e) {
     return false;
