@@ -2735,7 +2735,7 @@ const APPLY_ASSIST_WORKER_URL = "https://resolve.sufiangsufiang50.workers.dev";
 function requestApplyAssist(){
     const btn = document.querySelector('.apply-assist-btn');
     if(btn){ btn.disabled = true; btn.textContent = 'Loading...'; }
-    let applyUrl = APPLY_ASSIST_WORKER_URL + '/apply?job=' + encodeURIComponent(slug);
+    let applyUrl = APPLY_ASSIST_WORKER_URL + '/apply?job=' + encodeURIComponent(${JSON.stringify(slug)});
     if (currentUser) {
         applyUrl += '&uid=' + encodeURIComponent(currentUser.uid);
         applyUrl += '&uemail=' + encodeURIComponent(currentUser.email || '');
