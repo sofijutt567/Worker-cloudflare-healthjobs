@@ -2736,9 +2736,9 @@ function requestApplyAssist(){
     const btn = document.querySelector('.apply-assist-btn');
     if(btn){ btn.disabled = true; btn.textContent = 'Loading...'; }
     let applyUrl = APPLY_ASSIST_WORKER_URL + '/apply?job=' + encodeURIComponent(${JSON.stringify(slug)});
-    if (currentUser) {
-        applyUrl += '&uid=' + encodeURIComponent(currentUser.uid);
-        applyUrl += '&uemail=' + encodeURIComponent(currentUser.email || '');
+    if (window.__authUser) {
+        applyUrl += '&uid=' + encodeURIComponent(window.__authUser.uid);
+        applyUrl += '&uemail=' + encodeURIComponent(window.__authUser.email || '');
     }
     window.location.href = applyUrl;
 }
