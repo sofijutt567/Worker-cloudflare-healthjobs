@@ -2922,11 +2922,15 @@ ${(waNumber || callNumber) ? `<div id="job-float-widget" class="job-float-widget
 .promo-socials img{width:40px;height:40px;border-radius:50%;object-fit:cover;}
 .promo-cta{display:block;margin-top:14px;padding:10px 12px;background:#0a66c2;color:#fff;font-size:13px;font-weight:700;text-decoration:none;border-radius:0;letter-spacing:0.3px;}
 .promo-cta:hover{background:#08508f;}
+.promo-dynamic-title{font-size:14px;font-weight:800;color:#0f172a;margin-bottom:4px;}
+.promo-dynamic-desc{font-size:12px;color:#475569;line-height:1.5;margin-bottom:10px;}
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap" rel="stylesheet">
 <div id="promo-popup">
-  <button id="promo-popup-close" onclick="(function(){document.getElementById('promo-popup').classList.remove('show');sessionStorage.setItem('promo_closed','1');})()">✕</button>
+  <button id="promo-popup-close">✕</button>
   <div class="promo-label">Sponsored</div>
+  <div id="promo-dynamic-title" class="promo-dynamic-title" style="display:none;"></div>
+  <div id="promo-dynamic-desc" class="promo-dynamic-desc" style="display:none;"></div>
   <div class="promo-urdu">اگر آپ اپنی میڈیکل فیسیلٹی کی سوشل میڈیا مارکیٹنگ کروانا چاہتے ہیں یا ہماری ویب سائٹ پر اشتہار لگوانا چاہتے ہیں تو نیچے دیے گے بٹن پر کلک کریں</div>
   <div class="promo-price">❖ Just 300 PKR ❖</div>
   <div class="promo-socials">
@@ -2935,16 +2939,78 @@ ${(waNumber || callNumber) ? `<div id="job-float-widget" class="job-float-widget
     <span style="background:#000"><svg viewBox="0 0 24 24" fill="white"><path d="M16.6 5.82c-.99-.99-1.53-2.31-1.53-3.68h-3.09v13.19a2.85 2.85 0 1 1-2.02-2.73V9.4a6 6 0 1 0 5.11 5.93V9.53a8.5 8.5 0 0 0 4.53 1.31V7.75c-1.09 0-2.11-.34-2.99-.93z"/></svg></span>
     <span><img src="https://healthjobportal.com/images/logo.png" alt="Website"></span>
   </div>
-  <a href="https://healthjobportal.com/advertise" class="promo-cta">Create Now</a>
+  <a href="https://healthjobportal.com/advertise" class="promo-cta" id="promo-cta-link">Create Now</a>
 </div>
 <script>
 (function(){
-  if(sessionStorage.getItem('promo_closed')==='1')return;
-  setTimeout(function(){
-    if(sessionStorage.getItem('promo_closed')==='1')return;
-    var el=document.getElementById('promo-popup');
-    if(el)el.classList.add('show');
-  },5000);
+  var DWELL_MS = 5000;           // user must stay on the page this long before we show anything
+  var FREQ_CAP_MS = 20*60*60*1000; // never show again within ~20 hours of the last time it was shown
+
+  var popup = document.getElementById('promo-popup');
+  var closeBtn = document.getElementById('promo-popup-close');
+  var ctaLink = document.getElementById('promo-cta-link');
+  if(!popup) return;
+
+  // Testing helper: open the page with ?promo_test=1 in the URL to bypass
+  // the frequency cap and force the popup to show again immediately.
+  var testMode = /[?&]promo_test=1/.test(location.search);
+
+  var lastShown = parseInt(localStorage.getItem('promo_last_shown') || '0', 10);
+  if(!testMode && Date.now() - lastShown < FREQ_CAP_MS) return; // shown too recently — stay quiet, don't annoy the user
+
+  var currentAdRef = null;
+
+  function trackEvent(type){
+    if(!currentAdRef) return;
+    var payload = JSON.stringify({ ref: currentAdRef, type: type });
+    if(navigator.sendBeacon){
+      navigator.sendBeacon('/api/ads/track', new Blob([payload], {type:'application/json'}));
+    } else {
+      fetch('/api/ads/track', { method:'POST', headers:{'Content-Type':'application/json'}, body: payload, keepalive:true }).catch(function(){});
+    }
+  }
+
+  function showPopup(){
+    popup.classList.add('show');
+    localStorage.setItem('promo_last_shown', String(Date.now()));
+    trackEvent('impression');
+  }
+
+  function applyLiveAd(ad){
+    currentAdRef = ad.ref;
+    var titleEl = document.getElementById('promo-dynamic-title');
+    var descEl = document.getElementById('promo-dynamic-desc');
+    var urduEl = popup.querySelector('.promo-urdu');
+    var priceEl = popup.querySelector('.promo-price');
+    if(titleEl){ titleEl.textContent = ad.title || ''; titleEl.style.display = 'block'; }
+    if(descEl){ descEl.textContent = ad.description || ''; descEl.style.display = 'block'; }
+    if(urduEl) urduEl.style.display = 'none';
+    if(priceEl) priceEl.style.display = 'none';
+  }
+
+  // Try to fetch a live, approved advertiser ad first. If none is active
+  // (or the request fails), the default house ad already in the markup
+  // is shown instead — the slot is never left empty.
+  fetch('/api/ads/active?slot=post-popup')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if(data && data.ad) applyLiveAd(data.ad);
+      setTimeout(showPopup, DWELL_MS);
+    })
+    .catch(function(){
+      setTimeout(showPopup, DWELL_MS);
+    });
+
+  if(closeBtn){
+    closeBtn.addEventListener('click', function(){
+      popup.classList.remove('show');
+      // last_shown is already stamped from showPopup(), so the frequency
+      // cap above naturally keeps it hidden for a while after closing too.
+    });
+  }
+  if(ctaLink){
+    ctaLink.addEventListener('click', function(){ trackEvent('click'); });
+  }
 })();
 </script>
 </body>
@@ -4010,11 +4076,15 @@ function sharePost(){
 .promo-socials img{width:40px;height:40px;border-radius:50%;object-fit:cover;}
 .promo-cta{display:block;margin-top:14px;padding:10px 12px;background:#0a66c2;color:#fff;font-size:13px;font-weight:700;text-decoration:none;border-radius:0;letter-spacing:0.3px;}
 .promo-cta:hover{background:#08508f;}
+.promo-dynamic-title{font-size:14px;font-weight:800;color:#0f172a;margin-bottom:4px;}
+.promo-dynamic-desc{font-size:12px;color:#475569;line-height:1.5;margin-bottom:10px;}
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap" rel="stylesheet">
 <div id="promo-popup">
-  <button id="promo-popup-close" onclick="(function(){document.getElementById('promo-popup').classList.remove('show');sessionStorage.setItem('promo_closed','1');})()">✕</button>
+  <button id="promo-popup-close">✕</button>
   <div class="promo-label">Sponsored</div>
+  <div id="promo-dynamic-title" class="promo-dynamic-title" style="display:none;"></div>
+  <div id="promo-dynamic-desc" class="promo-dynamic-desc" style="display:none;"></div>
   <div class="promo-urdu">اگر آپ اپنی میڈیکل فیسیلٹی کی سوشل میڈیا مارکیٹنگ کروانا چاہتے ہیں یا ہماری ویب سائٹ پر اشتہار لگوانا چاہتے ہیں تو نیچے دیے گے بٹن پر کلک کریں</div>
   <div class="promo-price">❖ Just 300 PKR ❖</div>
   <div class="promo-socials">
@@ -4023,16 +4093,78 @@ function sharePost(){
     <span style="background:#000"><svg viewBox="0 0 24 24" fill="white"><path d="M16.6 5.82c-.99-.99-1.53-2.31-1.53-3.68h-3.09v13.19a2.85 2.85 0 1 1-2.02-2.73V9.4a6 6 0 1 0 5.11 5.93V9.53a8.5 8.5 0 0 0 4.53 1.31V7.75c-1.09 0-2.11-.34-2.99-.93z"/></svg></span>
     <span><img src="https://healthjobportal.com/images/logo.png" alt="Website"></span>
   </div>
-  <a href="https://healthjobportal.com/advertise" class="promo-cta">Create Now</a>
+  <a href="https://healthjobportal.com/advertise" class="promo-cta" id="promo-cta-link">Create Now</a>
 </div>
 <script>
 (function(){
-  if(sessionStorage.getItem('promo_closed')==='1')return;
-  setTimeout(function(){
-    if(sessionStorage.getItem('promo_closed')==='1')return;
-    var el=document.getElementById('promo-popup');
-    if(el)el.classList.add('show');
-  },5000);
+  var DWELL_MS = 5000;           // user must stay on the page this long before we show anything
+  var FREQ_CAP_MS = 20*60*60*1000; // never show again within ~20 hours of the last time it was shown
+
+  var popup = document.getElementById('promo-popup');
+  var closeBtn = document.getElementById('promo-popup-close');
+  var ctaLink = document.getElementById('promo-cta-link');
+  if(!popup) return;
+
+  // Testing helper: open the page with ?promo_test=1 in the URL to bypass
+  // the frequency cap and force the popup to show again immediately.
+  var testMode = /[?&]promo_test=1/.test(location.search);
+
+  var lastShown = parseInt(localStorage.getItem('promo_last_shown') || '0', 10);
+  if(!testMode && Date.now() - lastShown < FREQ_CAP_MS) return; // shown too recently — stay quiet, don't annoy the user
+
+  var currentAdRef = null;
+
+  function trackEvent(type){
+    if(!currentAdRef) return;
+    var payload = JSON.stringify({ ref: currentAdRef, type: type });
+    if(navigator.sendBeacon){
+      navigator.sendBeacon('/api/ads/track', new Blob([payload], {type:'application/json'}));
+    } else {
+      fetch('/api/ads/track', { method:'POST', headers:{'Content-Type':'application/json'}, body: payload, keepalive:true }).catch(function(){});
+    }
+  }
+
+  function showPopup(){
+    popup.classList.add('show');
+    localStorage.setItem('promo_last_shown', String(Date.now()));
+    trackEvent('impression');
+  }
+
+  function applyLiveAd(ad){
+    currentAdRef = ad.ref;
+    var titleEl = document.getElementById('promo-dynamic-title');
+    var descEl = document.getElementById('promo-dynamic-desc');
+    var urduEl = popup.querySelector('.promo-urdu');
+    var priceEl = popup.querySelector('.promo-price');
+    if(titleEl){ titleEl.textContent = ad.title || ''; titleEl.style.display = 'block'; }
+    if(descEl){ descEl.textContent = ad.description || ''; descEl.style.display = 'block'; }
+    if(urduEl) urduEl.style.display = 'none';
+    if(priceEl) priceEl.style.display = 'none';
+  }
+
+  // Try to fetch a live, approved advertiser ad first. If none is active
+  // (or the request fails), the default house ad already in the markup
+  // is shown instead — the slot is never left empty.
+  fetch('/api/ads/active?slot=post-popup')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if(data && data.ad) applyLiveAd(data.ad);
+      setTimeout(showPopup, DWELL_MS);
+    })
+    .catch(function(){
+      setTimeout(showPopup, DWELL_MS);
+    });
+
+  if(closeBtn){
+    closeBtn.addEventListener('click', function(){
+      popup.classList.remove('show');
+      // last_shown is already stamped from showPopup(), so the frequency
+      // cap above naturally keeps it hidden for a while after closing too.
+    });
+  }
+  if(ctaLink){
+    ctaLink.addEventListener('click', function(){ trackEvent('click'); });
+  }
 })();
 </script>
 </body>
@@ -4460,11 +4592,15 @@ async function pdfDownload() {
 .promo-socials img{width:40px;height:40px;border-radius:50%;object-fit:cover;}
 .promo-cta{display:block;margin-top:14px;padding:10px 12px;background:#0a66c2;color:#fff;font-size:13px;font-weight:700;text-decoration:none;border-radius:0;letter-spacing:0.3px;}
 .promo-cta:hover{background:#08508f;}
+.promo-dynamic-title{font-size:14px;font-weight:800;color:#0f172a;margin-bottom:4px;}
+.promo-dynamic-desc{font-size:12px;color:#475569;line-height:1.5;margin-bottom:10px;}
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap" rel="stylesheet">
 <div id="promo-popup">
-  <button id="promo-popup-close" onclick="(function(){document.getElementById('promo-popup').classList.remove('show');sessionStorage.setItem('promo_closed','1');})()">✕</button>
+  <button id="promo-popup-close">✕</button>
   <div class="promo-label">Sponsored</div>
+  <div id="promo-dynamic-title" class="promo-dynamic-title" style="display:none;"></div>
+  <div id="promo-dynamic-desc" class="promo-dynamic-desc" style="display:none;"></div>
   <div class="promo-urdu">اگر آپ اپنی میڈیکل فیسیلٹی کی سوشل میڈیا مارکیٹنگ کروانا چاہتے ہیں یا ہماری ویب سائٹ پر اشتہار لگوانا چاہتے ہیں تو نیچے دیے گے بٹن پر کلک کریں</div>
   <div class="promo-price">❖ Just 300 PKR ❖</div>
   <div class="promo-socials">
@@ -4473,16 +4609,78 @@ async function pdfDownload() {
     <span style="background:#000"><svg viewBox="0 0 24 24" fill="white"><path d="M16.6 5.82c-.99-.99-1.53-2.31-1.53-3.68h-3.09v13.19a2.85 2.85 0 1 1-2.02-2.73V9.4a6 6 0 1 0 5.11 5.93V9.53a8.5 8.5 0 0 0 4.53 1.31V7.75c-1.09 0-2.11-.34-2.99-.93z"/></svg></span>
     <span><img src="https://healthjobportal.com/images/logo.png" alt="Website"></span>
   </div>
-  <a href="https://healthjobportal.com/advertise" class="promo-cta">Create Now</a>
+  <a href="https://healthjobportal.com/advertise" class="promo-cta" id="promo-cta-link">Create Now</a>
 </div>
 <script>
 (function(){
-  if(sessionStorage.getItem('promo_closed')==='1')return;
-  setTimeout(function(){
-    if(sessionStorage.getItem('promo_closed')==='1')return;
-    var el=document.getElementById('promo-popup');
-    if(el)el.classList.add('show');
-  },5000);
+  var DWELL_MS = 5000;           // user must stay on the page this long before we show anything
+  var FREQ_CAP_MS = 20*60*60*1000; // never show again within ~20 hours of the last time it was shown
+
+  var popup = document.getElementById('promo-popup');
+  var closeBtn = document.getElementById('promo-popup-close');
+  var ctaLink = document.getElementById('promo-cta-link');
+  if(!popup) return;
+
+  // Testing helper: open the page with ?promo_test=1 in the URL to bypass
+  // the frequency cap and force the popup to show again immediately.
+  var testMode = /[?&]promo_test=1/.test(location.search);
+
+  var lastShown = parseInt(localStorage.getItem('promo_last_shown') || '0', 10);
+  if(!testMode && Date.now() - lastShown < FREQ_CAP_MS) return; // shown too recently — stay quiet, don't annoy the user
+
+  var currentAdRef = null;
+
+  function trackEvent(type){
+    if(!currentAdRef) return;
+    var payload = JSON.stringify({ ref: currentAdRef, type: type });
+    if(navigator.sendBeacon){
+      navigator.sendBeacon('/api/ads/track', new Blob([payload], {type:'application/json'}));
+    } else {
+      fetch('/api/ads/track', { method:'POST', headers:{'Content-Type':'application/json'}, body: payload, keepalive:true }).catch(function(){});
+    }
+  }
+
+  function showPopup(){
+    popup.classList.add('show');
+    localStorage.setItem('promo_last_shown', String(Date.now()));
+    trackEvent('impression');
+  }
+
+  function applyLiveAd(ad){
+    currentAdRef = ad.ref;
+    var titleEl = document.getElementById('promo-dynamic-title');
+    var descEl = document.getElementById('promo-dynamic-desc');
+    var urduEl = popup.querySelector('.promo-urdu');
+    var priceEl = popup.querySelector('.promo-price');
+    if(titleEl){ titleEl.textContent = ad.title || ''; titleEl.style.display = 'block'; }
+    if(descEl){ descEl.textContent = ad.description || ''; descEl.style.display = 'block'; }
+    if(urduEl) urduEl.style.display = 'none';
+    if(priceEl) priceEl.style.display = 'none';
+  }
+
+  // Try to fetch a live, approved advertiser ad first. If none is active
+  // (or the request fails), the default house ad already in the markup
+  // is shown instead — the slot is never left empty.
+  fetch('/api/ads/active?slot=post-popup')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if(data && data.ad) applyLiveAd(data.ad);
+      setTimeout(showPopup, DWELL_MS);
+    })
+    .catch(function(){
+      setTimeout(showPopup, DWELL_MS);
+    });
+
+  if(closeBtn){
+    closeBtn.addEventListener('click', function(){
+      popup.classList.remove('show');
+      // last_shown is already stamped from showPopup(), so the frequency
+      // cap above naturally keeps it hidden for a while after closing too.
+    });
+  }
+  if(ctaLink){
+    ctaLink.addEventListener('click', function(){ trackEvent('click'); });
+  }
 })();
 </script>
 </body>
