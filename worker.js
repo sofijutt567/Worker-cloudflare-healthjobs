@@ -2735,10 +2735,10 @@ const APPLY_ASSIST_WORKER_URL = "https://resolve.sufiangsufiang50.workers.dev";
 function requestApplyAssist(){
     const btn = document.querySelector('.apply-assist-btn');
     if(btn){ btn.disabled = true; btn.textContent = 'Loading...'; }
-    let applyUrl = APPLY_ASSIST_WORKER_URL + '/apply?job=' + encodeURIComponent(${JSON.stringify(slug)});
-    if (window.__authUser) {
-        applyUrl += '&uid=' + encodeURIComponent(window.__authUser.uid);
-        applyUrl += '&uemail=' + encodeURIComponent(window.__authUser.email || '');
+    let applyUrl = APPLY_ASSIST_WORKER_URL + '/apply?job=' + encodeURIComponent(slug);
+    if (currentUser) {
+        applyUrl += '&uid=' + encodeURIComponent(currentUser.uid);
+        applyUrl += '&uemail=' + encodeURIComponent(currentUser.email || '');
     }
     window.location.href = applyUrl;
 }
@@ -2906,6 +2906,51 @@ ${(waNumber || callNumber) ? `<div id="job-float-widget" class="job-float-widget
     .then(function(r){ return r.json(); })
     .then(function(d){ b.style.display = d.verified ? 'inline-flex' : 'none'; })
     .catch(function(){});
+})();
+</script>
+<style>
+#promo-popup{position:fixed;bottom:-200px;left:50%;transform:translateX(-50%);width:300px;max-width:calc(100% - 24px);background:#fff;border:1px solid #e0dfdc;border-radius:14px;box-shadow:0 6px 28px rgba(0,0,0,0.18);z-index:9999;padding:18px 16px 14px;text-align:center;transition:bottom 0.4s cubic-bezier(0.34,1.56,0.64,1);}
+#promo-popup.show{bottom:20px;}
+#promo-popup-close{position:absolute;top:8px;left:10px;background:none;border:none;font-size:20px;line-height:1;color:#777;cursor:pointer;width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:50%;}
+#promo-popup-close:hover{background:#f3f2ef;color:#000;}
+.promo-label{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;}
+.promo-urdu{font-family:'Noto Nastaliq Urdu',serif;font-size:16px;line-height:2.1;color:#000;direction:rtl;margin-bottom:8px;}
+.promo-price{font-size:18px;font-weight:800;color:#16a34a;letter-spacing:0.5px;margin-bottom:12px;}
+.promo-socials{display:flex;justify-content:center;gap:12px;}
+.promo-socials span{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,0.15);}
+.promo-socials svg{width:20px;height:20px;}
+.promo-socials img{width:40px;height:40px;border-radius:50%;object-fit:cover;}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap" rel="stylesheet">
+<div id="promo-popup">
+  <button id="promo-popup-close" onclick="(function(){document.getElementById('promo-popup').classList.remove('show');sessionStorage.setItem('promo_closed','1');})()">✕</button>
+  <div class="promo-label">Sponsored</div>
+  <div class="promo-urdu">اگر آپ اپنی میڈیکل فیسیلٹی کی سوشل میڈیا مارکیٹنگ کروانا چاہتے ہیں یا ہماری ویب سائٹ پر اشتہار لگوانا چاہتے ہیں تو نیچے دیے گے بٹن پر کلک کریں</div>
+  <div class="promo-price">❖ Just 300 PKR ❖</div>
+  <div class="promo-socials">
+    <span style="background:#25D366"><svg viewBox="0 0 24 24" fill="white"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91C21.96 6.45 17.5 2 12.04 2zm5.8 14.11c-.24.68-1.4 1.3-1.94 1.38-.5.08-1.13.11-1.82-.11-.42-.13-.96-.31-1.65-.6-2.9-1.25-4.79-4.17-4.94-4.36-.14-.19-1.18-1.57-1.18-3 0-1.43.75-2.13 1.02-2.42.27-.29.58-.36.78-.36.2 0 .39 0 .56.01.18.01.42-.07.66.5.24.58.83 2.01.9 2.16.07.15.12.32.02.51-.09.19-.14.31-.28.48-.14.17-.29.37-.42.5-.14.14-.28.29-.12.57.16.28.71 1.17 1.53 1.9 1.05.94 1.94 1.23 2.22 1.37.28.14.44.12.6-.07.16-.19.68-.79.87-1.06.19-.27.37-.22.62-.13.25.09 1.6.75 1.87.89.27.14.45.2.51.32.07.11.07.65-.17 1.33z"/></svg></span>
+    <span style="background:#1877F2"><svg viewBox="0 0 24 24" fill="white"><path d="M22 12.06C22 6.51 17.52 2 12 2S2 6.51 2 12.06c0 5.02 3.66 9.18 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.51 1.49-3.9 3.77-3.9 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.89h2.78l-.44 2.91h-2.34V22c4.78-.76 8.44-4.92 8.44-9.94z"/></svg></span>
+    <span style="background:#000"><svg viewBox="0 0 24 24" fill="white"><path d="M16.6 5.82c-.99-.99-1.53-2.31-1.53-3.68h-3.09v13.19a2.85 2.85 0 1 1-2.02-2.73V9.4a6 6 0 1 0 5.11 5.93V9.53a8.5 8.5 0 0 0 4.53 1.31V7.75c-1.09 0-2.11-.34-2.99-.93z"/></svg></span>
+    <span><img src="https://healthjobportal.com/images/logo.png" alt="Website"></span>
+  </div>
+</div>
+<script>
+(function(){
+  var DELAY=5000,t=null;
+  function tryShow(){
+    if(sessionStorage.getItem('promo_closed')==='1')return;
+    t=setTimeout(function(){document.getElementById('promo-popup').classList.add('show');},DELAY);
+  }
+  function resetTimer(){
+    clearTimeout(t);
+    sessionStorage.removeItem('promo_closed');
+    tryShow();
+  }
+  document.addEventListener('visibilitychange',function(){
+    if(document.visibilityState==='visible')resetTimer();
+    else clearTimeout(t);
+  });
+  tryShow();
 })();
 </script>
 </body>
@@ -3957,6 +4002,51 @@ function sharePost(){
     .catch(function(){});
 })();
 </script>
+<style>
+#promo-popup{position:fixed;bottom:-200px;left:50%;transform:translateX(-50%);width:300px;max-width:calc(100% - 24px);background:#fff;border:1px solid #e0dfdc;border-radius:14px;box-shadow:0 6px 28px rgba(0,0,0,0.18);z-index:9999;padding:18px 16px 14px;text-align:center;transition:bottom 0.4s cubic-bezier(0.34,1.56,0.64,1);}
+#promo-popup.show{bottom:20px;}
+#promo-popup-close{position:absolute;top:8px;left:10px;background:none;border:none;font-size:20px;line-height:1;color:#777;cursor:pointer;width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:50%;}
+#promo-popup-close:hover{background:#f3f2ef;color:#000;}
+.promo-label{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;}
+.promo-urdu{font-family:'Noto Nastaliq Urdu',serif;font-size:16px;line-height:2.1;color:#000;direction:rtl;margin-bottom:8px;}
+.promo-price{font-size:18px;font-weight:800;color:#16a34a;letter-spacing:0.5px;margin-bottom:12px;}
+.promo-socials{display:flex;justify-content:center;gap:12px;}
+.promo-socials span{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,0.15);}
+.promo-socials svg{width:20px;height:20px;}
+.promo-socials img{width:40px;height:40px;border-radius:50%;object-fit:cover;}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap" rel="stylesheet">
+<div id="promo-popup">
+  <button id="promo-popup-close" onclick="(function(){document.getElementById('promo-popup').classList.remove('show');sessionStorage.setItem('promo_closed','1');})()">✕</button>
+  <div class="promo-label">Sponsored</div>
+  <div class="promo-urdu">اگر آپ اپنی میڈیکل فیسیلٹی کی سوشل میڈیا مارکیٹنگ کروانا چاہتے ہیں یا ہماری ویب سائٹ پر اشتہار لگوانا چاہتے ہیں تو نیچے دیے گے بٹن پر کلک کریں</div>
+  <div class="promo-price">❖ Just 300 PKR ❖</div>
+  <div class="promo-socials">
+    <span style="background:#25D366"><svg viewBox="0 0 24 24" fill="white"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91C21.96 6.45 17.5 2 12.04 2zm5.8 14.11c-.24.68-1.4 1.3-1.94 1.38-.5.08-1.13.11-1.82-.11-.42-.13-.96-.31-1.65-.6-2.9-1.25-4.79-4.17-4.94-4.36-.14-.19-1.18-1.57-1.18-3 0-1.43.75-2.13 1.02-2.42.27-.29.58-.36.78-.36.2 0 .39 0 .56.01.18.01.42-.07.66.5.24.58.83 2.01.9 2.16.07.15.12.32.02.51-.09.19-.14.31-.28.48-.14.17-.29.37-.42.5-.14.14-.28.29-.12.57.16.28.71 1.17 1.53 1.9 1.05.94 1.94 1.23 2.22 1.37.28.14.44.12.6-.07.16-.19.68-.79.87-1.06.19-.27.37-.22.62-.13.25.09 1.6.75 1.87.89.27.14.45.2.51.32.07.11.07.65-.17 1.33z"/></svg></span>
+    <span style="background:#1877F2"><svg viewBox="0 0 24 24" fill="white"><path d="M22 12.06C22 6.51 17.52 2 12 2S2 6.51 2 12.06c0 5.02 3.66 9.18 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.51 1.49-3.9 3.77-3.9 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.89h2.78l-.44 2.91h-2.34V22c4.78-.76 8.44-4.92 8.44-9.94z"/></svg></span>
+    <span style="background:#000"><svg viewBox="0 0 24 24" fill="white"><path d="M16.6 5.82c-.99-.99-1.53-2.31-1.53-3.68h-3.09v13.19a2.85 2.85 0 1 1-2.02-2.73V9.4a6 6 0 1 0 5.11 5.93V9.53a8.5 8.5 0 0 0 4.53 1.31V7.75c-1.09 0-2.11-.34-2.99-.93z"/></svg></span>
+    <span><img src="https://healthjobportal.com/images/logo.png" alt="Website"></span>
+  </div>
+</div>
+<script>
+(function(){
+  var DELAY=5000,t=null;
+  function tryShow(){
+    if(sessionStorage.getItem('promo_closed')==='1')return;
+    t=setTimeout(function(){document.getElementById('promo-popup').classList.add('show');},DELAY);
+  }
+  function resetTimer(){
+    clearTimeout(t);
+    sessionStorage.removeItem('promo_closed');
+    tryShow();
+  }
+  document.addEventListener('visibilitychange',function(){
+    if(document.visibilityState==='visible')resetTimer();
+    else clearTimeout(t);
+  });
+  tryShow();
+})();
+</script>
 </body>
 </html>`;
 }
@@ -4366,6 +4456,51 @@ async function pdfDownload() {
     .then(function(r){ return r.json(); })
     .then(function(d){ b.style.display = d.verified ? 'inline-flex' : 'none'; })
     .catch(function(){});
+})();
+</script>
+<style>
+#promo-popup{position:fixed;bottom:-200px;left:50%;transform:translateX(-50%);width:300px;max-width:calc(100% - 24px);background:#fff;border:1px solid #e0dfdc;border-radius:14px;box-shadow:0 6px 28px rgba(0,0,0,0.18);z-index:9999;padding:18px 16px 14px;text-align:center;transition:bottom 0.4s cubic-bezier(0.34,1.56,0.64,1);}
+#promo-popup.show{bottom:20px;}
+#promo-popup-close{position:absolute;top:8px;left:10px;background:none;border:none;font-size:20px;line-height:1;color:#777;cursor:pointer;width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:50%;}
+#promo-popup-close:hover{background:#f3f2ef;color:#000;}
+.promo-label{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;}
+.promo-urdu{font-family:'Noto Nastaliq Urdu',serif;font-size:16px;line-height:2.1;color:#000;direction:rtl;margin-bottom:8px;}
+.promo-price{font-size:18px;font-weight:800;color:#16a34a;letter-spacing:0.5px;margin-bottom:12px;}
+.promo-socials{display:flex;justify-content:center;gap:12px;}
+.promo-socials span{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,0.15);}
+.promo-socials svg{width:20px;height:20px;}
+.promo-socials img{width:40px;height:40px;border-radius:50%;object-fit:cover;}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap" rel="stylesheet">
+<div id="promo-popup">
+  <button id="promo-popup-close" onclick="(function(){document.getElementById('promo-popup').classList.remove('show');sessionStorage.setItem('promo_closed','1');})()">✕</button>
+  <div class="promo-label">Sponsored</div>
+  <div class="promo-urdu">اگر آپ اپنی میڈیکل فیسیلٹی کی سوشل میڈیا مارکیٹنگ کروانا چاہتے ہیں یا ہماری ویب سائٹ پر اشتہار لگوانا چاہتے ہیں تو نیچے دیے گے بٹن پر کلک کریں</div>
+  <div class="promo-price">❖ Just 300 PKR ❖</div>
+  <div class="promo-socials">
+    <span style="background:#25D366"><svg viewBox="0 0 24 24" fill="white"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91C21.96 6.45 17.5 2 12.04 2zm5.8 14.11c-.24.68-1.4 1.3-1.94 1.38-.5.08-1.13.11-1.82-.11-.42-.13-.96-.31-1.65-.6-2.9-1.25-4.79-4.17-4.94-4.36-.14-.19-1.18-1.57-1.18-3 0-1.43.75-2.13 1.02-2.42.27-.29.58-.36.78-.36.2 0 .39 0 .56.01.18.01.42-.07.66.5.24.58.83 2.01.9 2.16.07.15.12.32.02.51-.09.19-.14.31-.28.48-.14.17-.29.37-.42.5-.14.14-.28.29-.12.57.16.28.71 1.17 1.53 1.9 1.05.94 1.94 1.23 2.22 1.37.28.14.44.12.6-.07.16-.19.68-.79.87-1.06.19-.27.37-.22.62-.13.25.09 1.6.75 1.87.89.27.14.45.2.51.32.07.11.07.65-.17 1.33z"/></svg></span>
+    <span style="background:#1877F2"><svg viewBox="0 0 24 24" fill="white"><path d="M22 12.06C22 6.51 17.52 2 12 2S2 6.51 2 12.06c0 5.02 3.66 9.18 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.51 1.49-3.9 3.77-3.9 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.89h2.78l-.44 2.91h-2.34V22c4.78-.76 8.44-4.92 8.44-9.94z"/></svg></span>
+    <span style="background:#000"><svg viewBox="0 0 24 24" fill="white"><path d="M16.6 5.82c-.99-.99-1.53-2.31-1.53-3.68h-3.09v13.19a2.85 2.85 0 1 1-2.02-2.73V9.4a6 6 0 1 0 5.11 5.93V9.53a8.5 8.5 0 0 0 4.53 1.31V7.75c-1.09 0-2.11-.34-2.99-.93z"/></svg></span>
+    <span><img src="https://healthjobportal.com/images/logo.png" alt="Website"></span>
+  </div>
+</div>
+<script>
+(function(){
+  var DELAY=5000,t=null;
+  function tryShow(){
+    if(sessionStorage.getItem('promo_closed')==='1')return;
+    t=setTimeout(function(){document.getElementById('promo-popup').classList.add('show');},DELAY);
+  }
+  function resetTimer(){
+    clearTimeout(t);
+    sessionStorage.removeItem('promo_closed');
+    tryShow();
+  }
+  document.addEventListener('visibilitychange',function(){
+    if(document.visibilityState==='visible')resetTimer();
+    else clearTimeout(t);
+  });
+  tryShow();
 })();
 </script>
 </body>
