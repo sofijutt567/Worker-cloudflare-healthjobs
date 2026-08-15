@@ -2935,28 +2935,9 @@ ${(waNumber || callNumber) ? `<div id="job-float-widget" class="job-float-widget
     <span style="background:#000"><svg viewBox="0 0 24 24" fill="white"><path d="M16.6 5.82c-.99-.99-1.53-2.31-1.53-3.68h-3.09v13.19a2.85 2.85 0 1 1-2.02-2.73V9.4a6 6 0 1 0 5.11 5.93V9.53a8.5 8.5 0 0 0 4.53 1.31V7.75c-1.09 0-2.11-.34-2.99-.93z"/></svg></span>
     <span><img src="https://healthjobportal.com/images/logo.png" alt="Website"></span>
   </div>
-  <button type="button" class="promo-cta" onclick="promoCtaClick(this)">Create Now</button>
+  <a href="https://healthjobportal.com/advertise" class="promo-cta">Create Now</a>
 </div>
 <script>
-function promoCtaClick(btn){
-  // TODO: paste your Worker endpoint URL here
-  var PROMO_WORKER_URL = 'PASTE_WORKER_URL_HERE';
-  var original = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = '...';
-  fetch(PROMO_WORKER_URL, { method: 'POST' })
-    .then(function(r){ return r.json().catch(function(){ return {}; }); })
-    .then(function(data){
-      btn.textContent = original;
-      btn.disabled = false;
-      // TODO: decide what happens next (e.g. window.open(data.url,'_blank'))
-    })
-    .catch(function(err){
-      console.error('promo-cta error:', err);
-      btn.textContent = original;
-      btn.disabled = false;
-    });
-}
 (function(){
   if(sessionStorage.getItem('promo_closed')==='1')return;
   setTimeout(function(){
@@ -4042,28 +4023,9 @@ function sharePost(){
     <span style="background:#000"><svg viewBox="0 0 24 24" fill="white"><path d="M16.6 5.82c-.99-.99-1.53-2.31-1.53-3.68h-3.09v13.19a2.85 2.85 0 1 1-2.02-2.73V9.4a6 6 0 1 0 5.11 5.93V9.53a8.5 8.5 0 0 0 4.53 1.31V7.75c-1.09 0-2.11-.34-2.99-.93z"/></svg></span>
     <span><img src="https://healthjobportal.com/images/logo.png" alt="Website"></span>
   </div>
-  <button type="button" class="promo-cta" onclick="promoCtaClick(this)">Create Now</button>
+  <a href="https://healthjobportal.com/advertise" class="promo-cta">Create Now</a>
 </div>
 <script>
-function promoCtaClick(btn){
-  // TODO: paste your Worker endpoint URL here
-  var PROMO_WORKER_URL = 'PASTE_WORKER_URL_HERE';
-  var original = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = '...';
-  fetch(PROMO_WORKER_URL, { method: 'POST' })
-    .then(function(r){ return r.json().catch(function(){ return {}; }); })
-    .then(function(data){
-      btn.textContent = original;
-      btn.disabled = false;
-      // TODO: decide what happens next (e.g. window.open(data.url,'_blank'))
-    })
-    .catch(function(err){
-      console.error('promo-cta error:', err);
-      btn.textContent = original;
-      btn.disabled = false;
-    });
-}
 (function(){
   if(sessionStorage.getItem('promo_closed')==='1')return;
   setTimeout(function(){
@@ -4511,28 +4473,9 @@ async function pdfDownload() {
     <span style="background:#000"><svg viewBox="0 0 24 24" fill="white"><path d="M16.6 5.82c-.99-.99-1.53-2.31-1.53-3.68h-3.09v13.19a2.85 2.85 0 1 1-2.02-2.73V9.4a6 6 0 1 0 5.11 5.93V9.53a8.5 8.5 0 0 0 4.53 1.31V7.75c-1.09 0-2.11-.34-2.99-.93z"/></svg></span>
     <span><img src="https://healthjobportal.com/images/logo.png" alt="Website"></span>
   </div>
-  <button type="button" class="promo-cta" onclick="promoCtaClick(this)">Create Now</button>
+  <a href="https://healthjobportal.com/advertise" class="promo-cta">Create Now</a>
 </div>
 <script>
-function promoCtaClick(btn){
-  // TODO: paste your Worker endpoint URL here
-  var PROMO_WORKER_URL = 'PASTE_WORKER_URL_HERE';
-  var original = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = '...';
-  fetch(PROMO_WORKER_URL, { method: 'POST' })
-    .then(function(r){ return r.json().catch(function(){ return {}; }); })
-    .then(function(data){
-      btn.textContent = original;
-      btn.disabled = false;
-      // TODO: decide what happens next (e.g. window.open(data.url,'_blank'))
-    })
-    .catch(function(err){
-      console.error('promo-cta error:', err);
-      btn.textContent = original;
-      btn.disabled = false;
-    });
-}
 (function(){
   if(sessionStorage.getItem('promo_closed')==='1')return;
   setTimeout(function(){
