@@ -2909,8 +2909,8 @@ ${(waNumber || callNumber) ? `<div id="job-float-widget" class="job-float-widget
 })();
 </script>
 <style>
-#promo-popup{position:fixed;bottom:-200px;left:50%;transform:translateX(-50%);width:300px;max-width:calc(100% - 24px);background:#fff;border:1px solid #d8d8d8;border-radius:0;box-shadow:0 4px 18px rgba(0,0,0,0.12);z-index:9999;padding:18px 16px 14px;text-align:center;transition:bottom 0.4s cubic-bezier(0.34,1.56,0.64,1);}
-#promo-popup.show{bottom:20px;}
+#promo-popup{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(150%);width:300px;max-width:calc(100% - 24px);background:#fff;border:1px solid #d8d8d8;border-radius:0;box-shadow:0 4px 18px rgba(0,0,0,0.12);z-index:9999;padding:18px 16px 14px;text-align:center;opacity:0;visibility:hidden;pointer-events:none;transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1),opacity 0.3s ease,visibility 0s linear 0.4s;}
+#promo-popup.show{transform:translateX(-50%) translateY(0);opacity:1;visibility:visible;pointer-events:auto;transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1),opacity 0.3s ease,visibility 0s linear 0s;}
 #promo-popup-close{position:absolute;top:8px;left:10px;background:none;border:none;font-size:18px;line-height:1;color:#777;cursor:pointer;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:0;}
 #promo-popup-close:hover{background:#f3f2ef;color:#000;}
 .promo-label{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;}
@@ -2920,6 +2920,8 @@ ${(waNumber || callNumber) ? `<div id="job-float-widget" class="job-float-widget
 .promo-socials span{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,0.15);}
 .promo-socials svg{width:20px;height:20px;}
 .promo-socials img{width:40px;height:40px;border-radius:50%;object-fit:cover;}
+.promo-cta{display:block;margin-top:14px;padding:10px 12px;background:#0a66c2;color:#fff;font-size:13px;font-weight:700;text-decoration:none;border-radius:0;letter-spacing:0.3px;}
+.promo-cta:hover{background:#08508f;}
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap" rel="stylesheet">
 <div id="promo-popup">
@@ -2933,8 +2935,28 @@ ${(waNumber || callNumber) ? `<div id="job-float-widget" class="job-float-widget
     <span style="background:#000"><svg viewBox="0 0 24 24" fill="white"><path d="M16.6 5.82c-.99-.99-1.53-2.31-1.53-3.68h-3.09v13.19a2.85 2.85 0 1 1-2.02-2.73V9.4a6 6 0 1 0 5.11 5.93V9.53a8.5 8.5 0 0 0 4.53 1.31V7.75c-1.09 0-2.11-.34-2.99-.93z"/></svg></span>
     <span><img src="https://healthjobportal.com/images/logo.png" alt="Website"></span>
   </div>
+  <button type="button" class="promo-cta" onclick="promoCtaClick(this)">Create Now</button>
 </div>
 <script>
+function promoCtaClick(btn){
+  // TODO: paste your Worker endpoint URL here
+  var PROMO_WORKER_URL = 'PASTE_WORKER_URL_HERE';
+  var original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '...';
+  fetch(PROMO_WORKER_URL, { method: 'POST' })
+    .then(function(r){ return r.json().catch(function(){ return {}; }); })
+    .then(function(data){
+      btn.textContent = original;
+      btn.disabled = false;
+      // TODO: decide what happens next (e.g. window.open(data.url,'_blank'))
+    })
+    .catch(function(err){
+      console.error('promo-cta error:', err);
+      btn.textContent = original;
+      btn.disabled = false;
+    });
+}
 (function(){
   if(sessionStorage.getItem('promo_closed')==='1')return;
   setTimeout(function(){
@@ -3994,8 +4016,8 @@ function sharePost(){
 })();
 </script>
 <style>
-#promo-popup{position:fixed;bottom:-200px;left:50%;transform:translateX(-50%);width:300px;max-width:calc(100% - 24px);background:#fff;border:1px solid #d8d8d8;border-radius:0;box-shadow:0 4px 18px rgba(0,0,0,0.12);z-index:9999;padding:18px 16px 14px;text-align:center;transition:bottom 0.4s cubic-bezier(0.34,1.56,0.64,1);}
-#promo-popup.show{bottom:20px;}
+#promo-popup{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(150%);width:300px;max-width:calc(100% - 24px);background:#fff;border:1px solid #d8d8d8;border-radius:0;box-shadow:0 4px 18px rgba(0,0,0,0.12);z-index:9999;padding:18px 16px 14px;text-align:center;opacity:0;visibility:hidden;pointer-events:none;transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1),opacity 0.3s ease,visibility 0s linear 0.4s;}
+#promo-popup.show{transform:translateX(-50%) translateY(0);opacity:1;visibility:visible;pointer-events:auto;transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1),opacity 0.3s ease,visibility 0s linear 0s;}
 #promo-popup-close{position:absolute;top:8px;left:10px;background:none;border:none;font-size:18px;line-height:1;color:#777;cursor:pointer;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:0;}
 #promo-popup-close:hover{background:#f3f2ef;color:#000;}
 .promo-label{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;}
@@ -4005,6 +4027,8 @@ function sharePost(){
 .promo-socials span{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,0.15);}
 .promo-socials svg{width:20px;height:20px;}
 .promo-socials img{width:40px;height:40px;border-radius:50%;object-fit:cover;}
+.promo-cta{display:block;margin-top:14px;padding:10px 12px;background:#0a66c2;color:#fff;font-size:13px;font-weight:700;text-decoration:none;border-radius:0;letter-spacing:0.3px;}
+.promo-cta:hover{background:#08508f;}
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap" rel="stylesheet">
 <div id="promo-popup">
@@ -4018,8 +4042,28 @@ function sharePost(){
     <span style="background:#000"><svg viewBox="0 0 24 24" fill="white"><path d="M16.6 5.82c-.99-.99-1.53-2.31-1.53-3.68h-3.09v13.19a2.85 2.85 0 1 1-2.02-2.73V9.4a6 6 0 1 0 5.11 5.93V9.53a8.5 8.5 0 0 0 4.53 1.31V7.75c-1.09 0-2.11-.34-2.99-.93z"/></svg></span>
     <span><img src="https://healthjobportal.com/images/logo.png" alt="Website"></span>
   </div>
+  <button type="button" class="promo-cta" onclick="promoCtaClick(this)">Create Now</button>
 </div>
 <script>
+function promoCtaClick(btn){
+  // TODO: paste your Worker endpoint URL here
+  var PROMO_WORKER_URL = 'PASTE_WORKER_URL_HERE';
+  var original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '...';
+  fetch(PROMO_WORKER_URL, { method: 'POST' })
+    .then(function(r){ return r.json().catch(function(){ return {}; }); })
+    .then(function(data){
+      btn.textContent = original;
+      btn.disabled = false;
+      // TODO: decide what happens next (e.g. window.open(data.url,'_blank'))
+    })
+    .catch(function(err){
+      console.error('promo-cta error:', err);
+      btn.textContent = original;
+      btn.disabled = false;
+    });
+}
 (function(){
   if(sessionStorage.getItem('promo_closed')==='1')return;
   setTimeout(function(){
@@ -4441,8 +4485,8 @@ async function pdfDownload() {
 })();
 </script>
 <style>
-#promo-popup{position:fixed;bottom:-200px;left:50%;transform:translateX(-50%);width:300px;max-width:calc(100% - 24px);background:#fff;border:1px solid #d8d8d8;border-radius:0;box-shadow:0 4px 18px rgba(0,0,0,0.12);z-index:9999;padding:18px 16px 14px;text-align:center;transition:bottom 0.4s cubic-bezier(0.34,1.56,0.64,1);}
-#promo-popup.show{bottom:20px;}
+#promo-popup{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(150%);width:300px;max-width:calc(100% - 24px);background:#fff;border:1px solid #d8d8d8;border-radius:0;box-shadow:0 4px 18px rgba(0,0,0,0.12);z-index:9999;padding:18px 16px 14px;text-align:center;opacity:0;visibility:hidden;pointer-events:none;transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1),opacity 0.3s ease,visibility 0s linear 0.4s;}
+#promo-popup.show{transform:translateX(-50%) translateY(0);opacity:1;visibility:visible;pointer-events:auto;transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1),opacity 0.3s ease,visibility 0s linear 0s;}
 #promo-popup-close{position:absolute;top:8px;left:10px;background:none;border:none;font-size:18px;line-height:1;color:#777;cursor:pointer;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:0;}
 #promo-popup-close:hover{background:#f3f2ef;color:#000;}
 .promo-label{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;}
@@ -4452,6 +4496,8 @@ async function pdfDownload() {
 .promo-socials span{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,0.15);}
 .promo-socials svg{width:20px;height:20px;}
 .promo-socials img{width:40px;height:40px;border-radius:50%;object-fit:cover;}
+.promo-cta{display:block;margin-top:14px;padding:10px 12px;background:#0a66c2;color:#fff;font-size:13px;font-weight:700;text-decoration:none;border-radius:0;letter-spacing:0.3px;}
+.promo-cta:hover{background:#08508f;}
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap" rel="stylesheet">
 <div id="promo-popup">
@@ -4465,8 +4511,28 @@ async function pdfDownload() {
     <span style="background:#000"><svg viewBox="0 0 24 24" fill="white"><path d="M16.6 5.82c-.99-.99-1.53-2.31-1.53-3.68h-3.09v13.19a2.85 2.85 0 1 1-2.02-2.73V9.4a6 6 0 1 0 5.11 5.93V9.53a8.5 8.5 0 0 0 4.53 1.31V7.75c-1.09 0-2.11-.34-2.99-.93z"/></svg></span>
     <span><img src="https://healthjobportal.com/images/logo.png" alt="Website"></span>
   </div>
+  <button type="button" class="promo-cta" onclick="promoCtaClick(this)">Create Now</button>
 </div>
 <script>
+function promoCtaClick(btn){
+  // TODO: paste your Worker endpoint URL here
+  var PROMO_WORKER_URL = 'PASTE_WORKER_URL_HERE';
+  var original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '...';
+  fetch(PROMO_WORKER_URL, { method: 'POST' })
+    .then(function(r){ return r.json().catch(function(){ return {}; }); })
+    .then(function(data){
+      btn.textContent = original;
+      btn.disabled = false;
+      // TODO: decide what happens next (e.g. window.open(data.url,'_blank'))
+    })
+    .catch(function(err){
+      console.error('promo-cta error:', err);
+      btn.textContent = original;
+      btn.disabled = false;
+    });
+}
 (function(){
   if(sessionStorage.getItem('promo_closed')==='1')return;
   setTimeout(function(){
