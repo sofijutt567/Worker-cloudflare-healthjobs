@@ -2909,9 +2909,9 @@ ${(waNumber || callNumber) ? `<div id="job-float-widget" class="job-float-widget
 })();
 </script>
 <style>
-#promo-popup{position:fixed;bottom:-200px;left:50%;transform:translateX(-50%);width:300px;max-width:calc(100% - 24px);background:#fff;border:1px solid #e0dfdc;border-radius:14px;box-shadow:0 6px 28px rgba(0,0,0,0.18);z-index:9999;padding:18px 16px 14px;text-align:center;transition:bottom 0.4s cubic-bezier(0.34,1.56,0.64,1);}
+#promo-popup{position:fixed;bottom:-200px;left:50%;transform:translateX(-50%);width:300px;max-width:calc(100% - 24px);background:#fff;border:1px solid #d8d8d8;border-radius:0;box-shadow:0 4px 18px rgba(0,0,0,0.12);z-index:9999;padding:18px 16px 14px;text-align:center;transition:bottom 0.4s cubic-bezier(0.34,1.56,0.64,1);}
 #promo-popup.show{bottom:20px;}
-#promo-popup-close{position:absolute;top:8px;left:10px;background:none;border:none;font-size:20px;line-height:1;color:#777;cursor:pointer;width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:50%;}
+#promo-popup-close{position:absolute;top:8px;left:10px;background:none;border:none;font-size:18px;line-height:1;color:#777;cursor:pointer;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:0;}
 #promo-popup-close:hover{background:#f3f2ef;color:#000;}
 .promo-label{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;}
 .promo-urdu{font-family:'Noto Nastaliq Urdu',serif;font-size:16px;line-height:2.1;color:#000;direction:rtl;margin-bottom:8px;}
@@ -2936,21 +2936,12 @@ ${(waNumber || callNumber) ? `<div id="job-float-widget" class="job-float-widget
 </div>
 <script>
 (function(){
-  var DELAY=5000,t=null;
-  function tryShow(){
+  if(sessionStorage.getItem('promo_closed')==='1')return;
+  setTimeout(function(){
     if(sessionStorage.getItem('promo_closed')==='1')return;
-    t=setTimeout(function(){document.getElementById('promo-popup').classList.add('show');},DELAY);
-  }
-  function resetTimer(){
-    clearTimeout(t);
-    sessionStorage.removeItem('promo_closed');
-    tryShow();
-  }
-  document.addEventListener('visibilitychange',function(){
-    if(document.visibilityState==='visible')resetTimer();
-    else clearTimeout(t);
-  });
-  tryShow();
+    var el=document.getElementById('promo-popup');
+    if(el)el.classList.add('show');
+  },5000);
 })();
 </script>
 </body>
@@ -4003,9 +3994,9 @@ function sharePost(){
 })();
 </script>
 <style>
-#promo-popup{position:fixed;bottom:-200px;left:50%;transform:translateX(-50%);width:300px;max-width:calc(100% - 24px);background:#fff;border:1px solid #e0dfdc;border-radius:14px;box-shadow:0 6px 28px rgba(0,0,0,0.18);z-index:9999;padding:18px 16px 14px;text-align:center;transition:bottom 0.4s cubic-bezier(0.34,1.56,0.64,1);}
+#promo-popup{position:fixed;bottom:-200px;left:50%;transform:translateX(-50%);width:300px;max-width:calc(100% - 24px);background:#fff;border:1px solid #d8d8d8;border-radius:0;box-shadow:0 4px 18px rgba(0,0,0,0.12);z-index:9999;padding:18px 16px 14px;text-align:center;transition:bottom 0.4s cubic-bezier(0.34,1.56,0.64,1);}
 #promo-popup.show{bottom:20px;}
-#promo-popup-close{position:absolute;top:8px;left:10px;background:none;border:none;font-size:20px;line-height:1;color:#777;cursor:pointer;width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:50%;}
+#promo-popup-close{position:absolute;top:8px;left:10px;background:none;border:none;font-size:18px;line-height:1;color:#777;cursor:pointer;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:0;}
 #promo-popup-close:hover{background:#f3f2ef;color:#000;}
 .promo-label{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;}
 .promo-urdu{font-family:'Noto Nastaliq Urdu',serif;font-size:16px;line-height:2.1;color:#000;direction:rtl;margin-bottom:8px;}
@@ -4030,21 +4021,12 @@ function sharePost(){
 </div>
 <script>
 (function(){
-  var DELAY=5000,t=null;
-  function tryShow(){
+  if(sessionStorage.getItem('promo_closed')==='1')return;
+  setTimeout(function(){
     if(sessionStorage.getItem('promo_closed')==='1')return;
-    t=setTimeout(function(){document.getElementById('promo-popup').classList.add('show');},DELAY);
-  }
-  function resetTimer(){
-    clearTimeout(t);
-    sessionStorage.removeItem('promo_closed');
-    tryShow();
-  }
-  document.addEventListener('visibilitychange',function(){
-    if(document.visibilityState==='visible')resetTimer();
-    else clearTimeout(t);
-  });
-  tryShow();
+    var el=document.getElementById('promo-popup');
+    if(el)el.classList.add('show');
+  },5000);
 })();
 </script>
 </body>
@@ -4459,9 +4441,9 @@ async function pdfDownload() {
 })();
 </script>
 <style>
-#promo-popup{position:fixed;bottom:-200px;left:50%;transform:translateX(-50%);width:300px;max-width:calc(100% - 24px);background:#fff;border:1px solid #e0dfdc;border-radius:14px;box-shadow:0 6px 28px rgba(0,0,0,0.18);z-index:9999;padding:18px 16px 14px;text-align:center;transition:bottom 0.4s cubic-bezier(0.34,1.56,0.64,1);}
+#promo-popup{position:fixed;bottom:-200px;left:50%;transform:translateX(-50%);width:300px;max-width:calc(100% - 24px);background:#fff;border:1px solid #d8d8d8;border-radius:0;box-shadow:0 4px 18px rgba(0,0,0,0.12);z-index:9999;padding:18px 16px 14px;text-align:center;transition:bottom 0.4s cubic-bezier(0.34,1.56,0.64,1);}
 #promo-popup.show{bottom:20px;}
-#promo-popup-close{position:absolute;top:8px;left:10px;background:none;border:none;font-size:20px;line-height:1;color:#777;cursor:pointer;width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:50%;}
+#promo-popup-close{position:absolute;top:8px;left:10px;background:none;border:none;font-size:18px;line-height:1;color:#777;cursor:pointer;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:0;}
 #promo-popup-close:hover{background:#f3f2ef;color:#000;}
 .promo-label{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;}
 .promo-urdu{font-family:'Noto Nastaliq Urdu',serif;font-size:16px;line-height:2.1;color:#000;direction:rtl;margin-bottom:8px;}
@@ -4486,21 +4468,12 @@ async function pdfDownload() {
 </div>
 <script>
 (function(){
-  var DELAY=5000,t=null;
-  function tryShow(){
+  if(sessionStorage.getItem('promo_closed')==='1')return;
+  setTimeout(function(){
     if(sessionStorage.getItem('promo_closed')==='1')return;
-    t=setTimeout(function(){document.getElementById('promo-popup').classList.add('show');},DELAY);
-  }
-  function resetTimer(){
-    clearTimeout(t);
-    sessionStorage.removeItem('promo_closed');
-    tryShow();
-  }
-  document.addEventListener('visibilitychange',function(){
-    if(document.visibilityState==='visible')resetTimer();
-    else clearTimeout(t);
-  });
-  tryShow();
+    var el=document.getElementById('promo-popup');
+    if(el)el.classList.add('show');
+  },5000);
 })();
 </script>
 </body>
