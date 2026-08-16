@@ -1093,7 +1093,7 @@ async function buildPostPage(post, slug, verified = false, env) {
       return "";
     }).join("") + "</div>";
   }
-  const extLinkHtml = extLink.trim() ? `<div onclick="requireAuth(async function(){ await trackClick('${e(slug)}','linkClicks'); window.open('${e(extLink)}','_blank'); })" style="display:inline-flex;align-items:center;gap:8px;margin-top:10px;margin-bottom:5px;padding:10px 16px;background:#f0f7ff;border:1px solid #d0e1fd;border-radius:8px;text-decoration:none;color:#1967d2;font-size:14px;font-weight:600;cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="#1967d2"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>Apply Now</div>` : "";
+  const extLinkHtml = extLink.trim() ? `<div class="apply-now-link" onclick="requireAuth(async function(){ await trackClick('${e(slug)}','linkClicks'); window.open('${e(extLink)}','_blank'); })" style="display:inline-flex;align-items:center;gap:8px;margin-top:10px;margin-bottom:5px;padding:10px 16px;background:#f0f7ff;border:1px solid #d0e1fd;border-radius:8px;text-decoration:none;color:#1967d2;font-size:14px;font-weight:600;cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="#1967d2"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>Apply Now</div>` : "";
   const whatsappBtn = waNumber ? `<div class="circle-btn-wrapper" style="cursor:pointer;" onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','whatsappClicks'); bumpStatCount('whatsapp-count-display','WhatsApp'); window.open('https://wa.me/${e(waNumber)}?text=${waMsg}','_blank'); })"><div class="circle-btn btn-wa"><svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg></div><span class="btn-label">WhatsApp</span></div>` : "";
   const callBtn = callNumber ? `<div class="circle-btn-wrapper" style="cursor:pointer;" onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','callClicks'); bumpStatCount('call-count-display','Calls'); window.location.href='tel:${e(callNumber)}'; })"><div class="circle-btn btn-call"><svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg></div><span class="btn-label">Call</span></div>` : "";
   const chatBtn = webChat && posterId ? `<div class="circle-btn-wrapper" style="cursor:pointer;" onclick="requireAuth(function(){ trackClick('${e(slug)}','chatClicks'); window.location.href='${SITE_URL}/chat.html?uid=${e(posterId)}'; })"><div class="circle-btn btn-chat"><svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg></div><span class="btn-label">Web Chat</span></div>` : "";
@@ -2944,7 +2944,7 @@ ${(waNumber || callNumber) ? `<div id="job-float-widget" class="job-float-widget
 <script>
 (function(){
   var DWELL_MS = 5000;           // user must stay on the page this long before we show anything
-  var FREQ_CAP_MS = 20*60*60*1000; // never show again within ~20 hours of the last time it was shown
+  var FREQ_CAP_MS = 2*60*60*1000; // never show again within ~2 hours of the last time it was shown
 
   var popup = document.getElementById('promo-popup');
   var closeBtn = document.getElementById('promo-popup-close');
@@ -2959,6 +2959,7 @@ ${(waNumber || callNumber) ? `<div id="job-float-widget" class="job-float-widget
   if(!testMode && Date.now() - lastShown < FREQ_CAP_MS) return; // shown too recently — stay quiet, don't annoy the user
 
   var currentAdRef = null;
+  var alreadyShown = false; // prevents double-counting an impression if both the timer AND a click trigger fire
 
   function trackEvent(type){
     if(!currentAdRef) return;
@@ -2971,6 +2972,8 @@ ${(waNumber || callNumber) ? `<div id="job-float-widget" class="job-float-widget
   }
 
   function showPopup(){
+    if(alreadyShown) return;
+    alreadyShown = true;
     popup.classList.add('show');
     localStorage.setItem('promo_last_shown', String(Date.now()));
     trackEvent('impression');
@@ -3001,6 +3004,31 @@ ${(waNumber || callNumber) ? `<div id="job-float-widget" class="job-float-widget
       if(data && data.ad) applyLiveAd(data.ad);
     })
     .catch(function(){ /* keep default house ad */ });
+
+  // ── Engagement triggers ────────────────────────────────────────────────
+  // Show the popup the moment the user shows real intent — tapping
+  // WhatsApp, Call, Apply Now, a post image, or a related post — instead
+  // of only waiting for the 5-second dwell timer. The user's original
+  // action (opening WhatsApp, dialing, viewing the image, etc.) always
+  // still happens; this only ever adds the popup alongside it, never
+  // replaces or blocks it.
+  var ENGAGEMENT_SELECTORS = '#jfw-wa-btn, #jfw-call-btn, #wa-channel-btn, .apply-assist-btn, .apply-now-link, [onclick*="openLightbox"]';
+  document.addEventListener('click', function(e){
+    if(e.target.closest(ENGAGEMENT_SELECTORS)) showPopup();
+  }, true);
+
+  // Related-post cards navigate the whole page away immediately, so the
+  // popup would never actually be visible unless we hold the navigation
+  // just long enough for it to animate in first. The click still results
+  // in the same navigation — just ~350ms later.
+  document.addEventListener('click', function(e){
+    var card = e.target.closest('.related-card');
+    if(!card || !card.href) return;
+    e.preventDefault();
+    showPopup();
+    var dest = card.href;
+    setTimeout(function(){ window.location.href = dest; }, 350);
+  }, true);
 
   if(closeBtn){
     closeBtn.addEventListener('click', function(){
@@ -4099,7 +4127,7 @@ function sharePost(){
 <script>
 (function(){
   var DWELL_MS = 5000;           // user must stay on the page this long before we show anything
-  var FREQ_CAP_MS = 20*60*60*1000; // never show again within ~20 hours of the last time it was shown
+  var FREQ_CAP_MS = 2*60*60*1000; // never show again within ~2 hours of the last time it was shown
 
   var popup = document.getElementById('promo-popup');
   var closeBtn = document.getElementById('promo-popup-close');
@@ -4114,6 +4142,7 @@ function sharePost(){
   if(!testMode && Date.now() - lastShown < FREQ_CAP_MS) return; // shown too recently — stay quiet, don't annoy the user
 
   var currentAdRef = null;
+  var alreadyShown = false; // prevents double-counting an impression if both the timer AND a click trigger fire
 
   function trackEvent(type){
     if(!currentAdRef) return;
@@ -4126,6 +4155,8 @@ function sharePost(){
   }
 
   function showPopup(){
+    if(alreadyShown) return;
+    alreadyShown = true;
     popup.classList.add('show');
     localStorage.setItem('promo_last_shown', String(Date.now()));
     trackEvent('impression');
@@ -4156,6 +4187,31 @@ function sharePost(){
       if(data && data.ad) applyLiveAd(data.ad);
     })
     .catch(function(){ /* keep default house ad */ });
+
+  // ── Engagement triggers ────────────────────────────────────────────────
+  // Show the popup the moment the user shows real intent — tapping
+  // WhatsApp, Call, Apply Now, a post image, or a related post — instead
+  // of only waiting for the 5-second dwell timer. The user's original
+  // action (opening WhatsApp, dialing, viewing the image, etc.) always
+  // still happens; this only ever adds the popup alongside it, never
+  // replaces or blocks it.
+  var ENGAGEMENT_SELECTORS = '#jfw-wa-btn, #jfw-call-btn, #wa-channel-btn, .apply-assist-btn, .apply-now-link, [onclick*="openLightbox"]';
+  document.addEventListener('click', function(e){
+    if(e.target.closest(ENGAGEMENT_SELECTORS)) showPopup();
+  }, true);
+
+  // Related-post cards navigate the whole page away immediately, so the
+  // popup would never actually be visible unless we hold the navigation
+  // just long enough for it to animate in first. The click still results
+  // in the same navigation — just ~350ms later.
+  document.addEventListener('click', function(e){
+    var card = e.target.closest('.related-card');
+    if(!card || !card.href) return;
+    e.preventDefault();
+    showPopup();
+    var dest = card.href;
+    setTimeout(function(){ window.location.href = dest; }, 350);
+  }, true);
 
   if(closeBtn){
     closeBtn.addEventListener('click', function(){
@@ -4616,7 +4672,7 @@ async function pdfDownload() {
 <script>
 (function(){
   var DWELL_MS = 5000;           // user must stay on the page this long before we show anything
-  var FREQ_CAP_MS = 20*60*60*1000; // never show again within ~20 hours of the last time it was shown
+  var FREQ_CAP_MS = 2*60*60*1000; // never show again within ~2 hours of the last time it was shown
 
   var popup = document.getElementById('promo-popup');
   var closeBtn = document.getElementById('promo-popup-close');
@@ -4631,6 +4687,7 @@ async function pdfDownload() {
   if(!testMode && Date.now() - lastShown < FREQ_CAP_MS) return; // shown too recently — stay quiet, don't annoy the user
 
   var currentAdRef = null;
+  var alreadyShown = false; // prevents double-counting an impression if both the timer AND a click trigger fire
 
   function trackEvent(type){
     if(!currentAdRef) return;
@@ -4643,6 +4700,8 @@ async function pdfDownload() {
   }
 
   function showPopup(){
+    if(alreadyShown) return;
+    alreadyShown = true;
     popup.classList.add('show');
     localStorage.setItem('promo_last_shown', String(Date.now()));
     trackEvent('impression');
@@ -4673,6 +4732,31 @@ async function pdfDownload() {
       if(data && data.ad) applyLiveAd(data.ad);
     })
     .catch(function(){ /* keep default house ad */ });
+
+  // ── Engagement triggers ────────────────────────────────────────────────
+  // Show the popup the moment the user shows real intent — tapping
+  // WhatsApp, Call, Apply Now, a post image, or a related post — instead
+  // of only waiting for the 5-second dwell timer. The user's original
+  // action (opening WhatsApp, dialing, viewing the image, etc.) always
+  // still happens; this only ever adds the popup alongside it, never
+  // replaces or blocks it.
+  var ENGAGEMENT_SELECTORS = '#jfw-wa-btn, #jfw-call-btn, #wa-channel-btn, .apply-assist-btn, .apply-now-link, [onclick*="openLightbox"]';
+  document.addEventListener('click', function(e){
+    if(e.target.closest(ENGAGEMENT_SELECTORS)) showPopup();
+  }, true);
+
+  // Related-post cards navigate the whole page away immediately, so the
+  // popup would never actually be visible unless we hold the navigation
+  // just long enough for it to animate in first. The click still results
+  // in the same navigation — just ~350ms later.
+  document.addEventListener('click', function(e){
+    var card = e.target.closest('.related-card');
+    if(!card || !card.href) return;
+    e.preventDefault();
+    showPopup();
+    var dest = card.href;
+    setTimeout(function(){ window.location.href = dest; }, 350);
+  }, true);
 
   if(closeBtn){
     closeBtn.addEventListener('click', function(){
