@@ -2988,18 +2988,19 @@ ${(waNumber || callNumber) ? `<div id="job-float-widget" class="job-float-widget
     if(priceEl) priceEl.style.display = 'none';
   }
 
-  // Try to fetch a live, approved advertiser ad first. If none is active
-  // (or the request fails), the default house ad already in the markup
-  // is shown instead — the slot is never left empty.
+  // The 5-second reveal timer runs on its own, no matter what — it never
+  // waits on the network. If a live advertiser ad can be fetched in time,
+  // its content replaces the default house ad; if the fetch is slow,
+  // fails, or the route isn't set up yet, the popup still shows on time
+  // with the default house ad already in the markup.
+  setTimeout(showPopup, DWELL_MS);
+
   fetch('/api/ads/active?slot=post-popup')
     .then(function(r){ return r.json(); })
     .then(function(data){
       if(data && data.ad) applyLiveAd(data.ad);
-      setTimeout(showPopup, DWELL_MS);
     })
-    .catch(function(){
-      setTimeout(showPopup, DWELL_MS);
-    });
+    .catch(function(){ /* keep default house ad */ });
 
   if(closeBtn){
     closeBtn.addEventListener('click', function(){
@@ -4142,18 +4143,19 @@ function sharePost(){
     if(priceEl) priceEl.style.display = 'none';
   }
 
-  // Try to fetch a live, approved advertiser ad first. If none is active
-  // (or the request fails), the default house ad already in the markup
-  // is shown instead — the slot is never left empty.
+  // The 5-second reveal timer runs on its own, no matter what — it never
+  // waits on the network. If a live advertiser ad can be fetched in time,
+  // its content replaces the default house ad; if the fetch is slow,
+  // fails, or the route isn't set up yet, the popup still shows on time
+  // with the default house ad already in the markup.
+  setTimeout(showPopup, DWELL_MS);
+
   fetch('/api/ads/active?slot=post-popup')
     .then(function(r){ return r.json(); })
     .then(function(data){
       if(data && data.ad) applyLiveAd(data.ad);
-      setTimeout(showPopup, DWELL_MS);
     })
-    .catch(function(){
-      setTimeout(showPopup, DWELL_MS);
-    });
+    .catch(function(){ /* keep default house ad */ });
 
   if(closeBtn){
     closeBtn.addEventListener('click', function(){
@@ -4658,18 +4660,19 @@ async function pdfDownload() {
     if(priceEl) priceEl.style.display = 'none';
   }
 
-  // Try to fetch a live, approved advertiser ad first. If none is active
-  // (or the request fails), the default house ad already in the markup
-  // is shown instead — the slot is never left empty.
+  // The 5-second reveal timer runs on its own, no matter what — it never
+  // waits on the network. If a live advertiser ad can be fetched in time,
+  // its content replaces the default house ad; if the fetch is slow,
+  // fails, or the route isn't set up yet, the popup still shows on time
+  // with the default house ad already in the markup.
+  setTimeout(showPopup, DWELL_MS);
+
   fetch('/api/ads/active?slot=post-popup')
     .then(function(r){ return r.json(); })
     .then(function(data){
       if(data && data.ad) applyLiveAd(data.ad);
-      setTimeout(showPopup, DWELL_MS);
     })
-    .catch(function(){
-      setTimeout(showPopup, DWELL_MS);
-    });
+    .catch(function(){ /* keep default house ad */ });
 
   if(closeBtn){
     closeBtn.addEventListener('click', function(){
