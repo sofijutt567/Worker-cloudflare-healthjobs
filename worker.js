@@ -2909,7 +2909,7 @@ ${(waNumber || callNumber) ? `<div id="job-float-widget" class="job-float-widget
 })();
 </script>
 <style>
-#promo-popup{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(150%);width:300px;max-width:calc(100% - 24px);background:#fff;border:1px solid #d8d8d8;border-radius:0;box-shadow:0 4px 18px rgba(0,0,0,0.12);z-index:9999;padding:18px 16px 14px;text-align:center;opacity:0;visibility:hidden;pointer-events:none;transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1),opacity 0.3s ease,visibility 0s linear 0.4s;}
+#promo-popup{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(150%);width:300px;max-width:calc(100% - 24px);background:#fff;border:1px solid #d8d8d8;border-radius:0;box-shadow:0 4px 18px rgba(0,0,0,0.12);z-index:10001;padding:18px 16px 14px;text-align:center;opacity:0;visibility:hidden;pointer-events:none;transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1),opacity 0.3s ease,visibility 0s linear 0.4s;}
 #promo-popup.show{transform:translateX(-50%) translateY(0);opacity:1;visibility:visible;pointer-events:auto;transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1),opacity 0.3s ease,visibility 0s linear 0s;}
 #promo-popup-close{position:absolute;top:8px;left:10px;background:none;border:none;font-size:18px;line-height:1;color:#777;cursor:pointer;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:0;}
 #promo-popup-close:hover{background:#f3f2ef;color:#000;}
@@ -4063,7 +4063,7 @@ function sharePost(){
 })();
 </script>
 <style>
-#promo-popup{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(150%);width:300px;max-width:calc(100% - 24px);background:#fff;border:1px solid #d8d8d8;border-radius:0;box-shadow:0 4px 18px rgba(0,0,0,0.12);z-index:9999;padding:18px 16px 14px;text-align:center;opacity:0;visibility:hidden;pointer-events:none;transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1),opacity 0.3s ease,visibility 0s linear 0.4s;}
+#promo-popup{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(150%);width:300px;max-width:calc(100% - 24px);background:#fff;border:1px solid #d8d8d8;border-radius:0;box-shadow:0 4px 18px rgba(0,0,0,0.12);z-index:10001;padding:18px 16px 14px;text-align:center;opacity:0;visibility:hidden;pointer-events:none;transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1),opacity 0.3s ease,visibility 0s linear 0.4s;}
 #promo-popup.show{transform:translateX(-50%) translateY(0);opacity:1;visibility:visible;pointer-events:auto;transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1),opacity 0.3s ease,visibility 0s linear 0s;}
 #promo-popup-close{position:absolute;top:8px;left:10px;background:none;border:none;font-size:18px;line-height:1;color:#777;cursor:pointer;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:0;}
 #promo-popup-close:hover{background:#f3f2ef;color:#000;}
@@ -4579,7 +4579,7 @@ async function pdfDownload() {
 })();
 </script>
 <style>
-#promo-popup{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(150%);width:300px;max-width:calc(100% - 24px);background:#fff;border:1px solid #d8d8d8;border-radius:0;box-shadow:0 4px 18px rgba(0,0,0,0.12);z-index:9999;padding:18px 16px 14px;text-align:center;opacity:0;visibility:hidden;pointer-events:none;transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1),opacity 0.3s ease,visibility 0s linear 0.4s;}
+#promo-popup{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(150%);width:300px;max-width:calc(100% - 24px);background:#fff;border:1px solid #d8d8d8;border-radius:0;box-shadow:0 4px 18px rgba(0,0,0,0.12);z-index:10001;padding:18px 16px 14px;text-align:center;opacity:0;visibility:hidden;pointer-events:none;transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1),opacity 0.3s ease,visibility 0s linear 0.4s;}
 #promo-popup.show{transform:translateX(-50%) translateY(0);opacity:1;visibility:visible;pointer-events:auto;transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1),opacity 0.3s ease,visibility 0s linear 0s;}
 #promo-popup-close{position:absolute;top:8px;left:10px;background:none;border:none;font-size:18px;line-height:1;color:#777;cursor:pointer;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:0;}
 #promo-popup-close:hover{background:#f3f2ef;color:#000;}
