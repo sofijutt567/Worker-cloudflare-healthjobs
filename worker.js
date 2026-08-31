@@ -1151,7 +1151,7 @@ let s3=document.createElement('script');s3.src="https://analytics.ahrefs.com/ana
 .btn-call{background:#0078FF;}.btn-call:hover{background:#005bb5;transform:translateY(-3px);}
 :root{--primary-blue:#0a66c2;--hover-blue:#004182;--bg-white:#ffffff;--bg-body:#f3f2ef;--text-main:#000000e6;--text-secondary:#00000099;--border-color:#e0dfdc;--wa-green:#25D366;--call-blue:#0078FF;}
 *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}
-body{background:var(--bg-body);color:var(--text-main);padding-top:70px;padding-bottom:30px;}
+body{background:var(--bg-body);color:var(--text-main);padding-top:70px;padding-bottom:80px;}
 header{background:var(--bg-white);padding:0 15px;display:flex;align-items:center;gap:15px;position:fixed;top:0;left:0;width:100%;height:65px;z-index:1000;border-bottom:1px solid var(--border-color);box-shadow:0 1px 3px rgba(0,0,0,0.05);}
 .back-btn{background:none;border:none;cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;padding:5px;}
 .back-btn:hover{color:var(--primary-blue);}
@@ -1211,8 +1211,8 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
 .jfw-tooltip-x{position:absolute;top:9px;right:9px;cursor:pointer;color:#9ca3af;font-weight:800;font-size:14px;line-height:1;}
 
 /* ── Quick Action Row (WhatsApp / Call / Share) — above job details table ── */
-.quick-actions-row{display:flex;gap:10px;margin:16px 0;flex-wrap:wrap;}
-.qa-btn{flex:1;min-width:100px;display:flex;align-items:center;justify-content:center;gap:7px;padding:11px 10px;border-radius:24px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;transition:0.2s;border:1.5px solid transparent;}
+.quick-actions-row{display:flex;justify-content:center;gap:10px;margin:16px 0;flex-wrap:wrap;}
+.qa-btn{flex:1;max-width:240px;min-width:100px;display:flex;align-items:center;justify-content:center;gap:7px;padding:11px 10px;border-radius:24px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;transition:0.2s;border:1.5px solid transparent;}
 .qa-btn svg{width:17px;height:17px;fill:currentColor;flex-shrink:0;}
 .qa-wa{background:#25D366;color:#fff;}
 .qa-wa:active{background:#1DA851;}
@@ -1329,15 +1329,16 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
 .action-btn:hover,.action-btn:active{background:#f1f5f9;}
 .action-btn.liked{color:var(--primary-blue);}
 .action-btn svg{width:18px;height:18px;fill:currentColor;}
-/* ── Post Actions v2: colored icon Like/Comment + direct social Share row ── */
-.post-actions-v2{display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 0;flex-wrap:wrap;}
-.pa-icon-btn{width:34px;height:34px;border-radius:8px;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:#fff;transition:0.15s;}
+/* ── Post Actions v2: colored icon Like/Comment + direct social Share row — fixed bottom nav bar ── */
+.post-actions-v2{position:fixed;bottom:0;left:0;width:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 6px calc(10px + env(safe-area-inset-bottom)) 6px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;background:var(--bg-white);border-top:1px solid var(--border-color);box-shadow:0 -4px 15px rgba(0,0,0,0.08);z-index:999;}
+.post-actions-v2::-webkit-scrollbar{display:none;}
+.pa-icon-btn{width:32px;height:32px;border-radius:8px;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:#fff;transition:0.15s;}
 .pa-icon-btn:active{transform:scale(0.93);}
-.pa-icon-btn svg{width:17px;height:17px;fill:currentColor;}
+.pa-icon-btn svg{width:16px;height:16px;fill:currentColor;}
 .pa-like{background:#64748b;}
 .pa-like.liked{background:#0a66c2;}
 .pa-comment{background:#64748b;}
-.pa-share-count{font-size:12px;font-weight:600;color:#64748b;padding:0 4px;white-space:nowrap;}
+.pa-share-count{font-size:12px;font-weight:600;color:#64748b;padding:0 4px;white-space:nowrap;flex-shrink:0;}
 .pa-fb{background:#1877F2;}
 .pa-wa{background:#25D366;}
 .pa-x{background:#000;}
