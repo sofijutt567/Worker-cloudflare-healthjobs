@@ -1210,6 +1210,17 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
 .jfw-tooltip-icon{width:20px;height:20px;flex-shrink:0;color:#2563eb;margin-top:1px;}
 .jfw-tooltip-x{position:absolute;top:9px;right:9px;cursor:pointer;color:#9ca3af;font-weight:800;font-size:14px;line-height:1;}
 
+/* ── Quick Action Row (WhatsApp / Call / Share) — above job details table ── */
+.quick-actions-row{display:flex;gap:10px;margin:16px 0;flex-wrap:wrap;}
+.qa-btn{flex:1;min-width:100px;display:flex;align-items:center;justify-content:center;gap:7px;padding:11px 10px;border-radius:24px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;transition:0.2s;border:1.5px solid transparent;}
+.qa-btn svg{width:17px;height:17px;fill:currentColor;flex-shrink:0;}
+.qa-wa{background:#25D366;color:#fff;}
+.qa-wa:active{background:#1DA851;}
+.qa-call{background:#0a66c2;color:#fff;}
+.qa-call:active{background:#075396;}
+.qa-share{background:#fff;color:#0a66c2;border-color:#0a66c2;}
+.qa-share:active{background:#f0f7ff;}
+
 .btn-wa{background:var(--wa-green);}.btn-wa:hover{background:#1DA851;transform:translateY(-3px);box-shadow:0 6px 12px rgba(37,211,102,0.3);}
 .btn-call{background:var(--call-blue);}.btn-call:hover{background:#005bb5;transform:translateY(-3px);box-shadow:0 6px 12px rgba(0,120,255,0.3);}
 .btn-chat{background:var(--primary-blue);}.btn-chat:hover{background:var(--hover-blue);transform:translateY(-3px);box-shadow:0 6px 12px rgba(10,102,194,0.3);}
@@ -1318,6 +1329,18 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
 .action-btn:hover,.action-btn:active{background:#f1f5f9;}
 .action-btn.liked{color:var(--primary-blue);}
 .action-btn svg{width:18px;height:18px;fill:currentColor;}
+/* ── Post Actions v2: colored icon Like/Comment + direct social Share row ── */
+.post-actions-v2{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #f1f1f1;flex-wrap:wrap;}
+.pa-icon-btn{width:34px;height:34px;border-radius:8px;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:#fff;transition:0.15s;}
+.pa-icon-btn:active{transform:scale(0.93);}
+.pa-icon-btn svg{width:17px;height:17px;fill:currentColor;}
+.pa-like{background:#64748b;}
+.pa-like.liked{background:#0a66c2;}
+.pa-comment{background:#64748b;}
+.pa-share-count{font-size:12px;font-weight:600;color:#64748b;margin-left:auto;padding-right:2px;white-space:nowrap;}
+.pa-fb{background:#1877F2;}
+.pa-wa{background:#25D366;}
+.pa-x{background:#000;}
 .cmt-item{display:flex;gap:8px;margin-bottom:10px;position:relative;}
 .cmt-avatar{width:30px;height:30px;min-width:30px;border-radius:50%;object-fit:cover;border:1px solid #e2e8f0;cursor:pointer;margin-top:2px;}
 .cmt-bubble{flex:1;background:#fff;border:1px solid #e8edf2;border-radius:0 10px 10px 10px;padding:8px 10px;min-width:0;}
@@ -1501,6 +1524,21 @@ ${expiresAt ? `<div id="expiry-badge-wrap"></div>` : ""}
 <script type="text/javascript" src="//widget.trustpilot.com/bootstrap/v5/tp.widget.bootstrap.min.js" async><\/script>
 <!-- End TrustBox widget --> 
 
+<div class="quick-actions-row">
+  ${waNumber ? `<button class="qa-btn qa-wa" onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','whatsappClicks'); bumpStatCount('whatsapp-count-display','WhatsApp'); window.open('https://wa.me/${e(waNumber)}?text=${waMsg}','_blank'); })">
+    <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+    WhatsApp
+  </button>` : ""}
+  ${callNumber ? `<button class="qa-btn qa-call" onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','callClicks'); bumpStatCount('call-count-display','Calls'); window.location.href='tel:${e(callNumber)}'; })">
+    <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+    Call
+  </button>` : ""}
+  <button class="qa-btn qa-share" onclick="jfwShare()">
+    <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>
+    Share
+  </button>
+</div>
+
 <table class="job-details-table">
         <tbody>
             <tr>
@@ -1629,20 +1667,25 @@ ${city ? `
     </div>
 
     <!-- Action Buttons -->
-    <div class="post-actions">
-        <button class="action-btn" id="like-btn" onclick="doLike()">
+    <div class="post-actions-v2">
+        <button class="pa-icon-btn pa-like" id="like-btn" onclick="doLike()" aria-label="Like" title="Like">
             <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-            Like
         </button>
-        <button class="action-btn" onclick="toggleComments()">
+        <button class="pa-icon-btn pa-comment" onclick="toggleComments()" aria-label="Comment" title="Comment">
             <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            Comment
         </button>
-        <button class="action-btn" onclick="sharePost()">
-            <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>
-            Share
+        <span class="pa-share-count" id="pa-share-count-inline" data-count="${Number(post.shares) || 0}">${fmtK(Number(post.shares) || 0)} Shares</span>
+        <button class="pa-icon-btn pa-fb" onclick="shareToFb()" aria-label="Share on Facebook" title="Share on Facebook">
+            <svg viewBox="0 0 24 24"><path d="M22 12.06C22 6.51 17.52 2 12 2S2 6.51 2 12.06c0 5.02 3.66 9.18 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.51 1.49-3.9 3.77-3.9 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.89h2.78l-.44 2.91h-2.34V22c4.78-.76 8.44-4.92 8.44-9.94z"/></svg>
+        </button>
+        <button class="pa-icon-btn pa-wa" onclick="shareToWa()" aria-label="Share on WhatsApp" title="Share on WhatsApp">
+            <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+        </button>
+        <button class="pa-icon-btn pa-x" onclick="shareToX()" aria-label="Share on X" title="Share on X">
+            <svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
         </button>
     </div>
+
 
     <!-- Comments Section -->
     <div id="cmt-section" style="display:none;padding:16px;background:#f8fafc;border-top:1px solid #f1f1f1;">
@@ -2759,6 +2802,7 @@ function bumpStatCount(id, label){
 function onShareCompleted(){
     trackClick(POST_ID, 'shares');
     bumpStatCount('share-count-display', 'Shares');
+    bumpStatCount('pa-share-count-inline', 'Shares');
     bumpJfwCount('jfw-share-count');
 }
 function sharePost(){
@@ -2771,6 +2815,19 @@ function sharePost(){
         alert('Link copied to clipboard!');
         onShareCompleted();
     }
+}
+function shareToFb(){
+    window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(${JSON.stringify(canonicalUrl)}), '_blank', 'noopener,width=600,height=500');
+    onShareCompleted();
+}
+function shareToWa(){
+    const msg = ${JSON.stringify(title)} + ' - ' + ${JSON.stringify(canonicalUrl)};
+    window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+    onShareCompleted();
+}
+function shareToX(){
+    window.open('https://twitter.com/intent/tweet?url=' + encodeURIComponent(${JSON.stringify(canonicalUrl)}) + '&text=' + encodeURIComponent(${JSON.stringify(title)}), '_blank', 'noopener,width=600,height=500');
+    onShareCompleted();
 }
 
 /* ── Job Apply Float Widget logic ── */
@@ -2860,29 +2917,6 @@ async function submitReport(){
     }
 }
 <\/script>
-<!-- Job Apply Float Widget: WhatsApp / Call / Share -->
-${(waNumber || callNumber) ? `<div id="job-float-widget" class="job-float-widget">
-  ${waNumber ? `<div class="jfw-tooltip" id="jfw-tooltip">
-    <svg class="jfw-tooltip-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
-    <span>Don't miss this job</span>
-    <span class="jfw-tooltip-x" onclick="jfwStopTooltip(event)">&#10005;</span>
-  </div>` : ""}
-  <div class="jfw-close-row"><span class="jfw-close" onclick="closeJobFloatWidget()">Close &#10005;</span></div>
-  <div class="jfw-panel">
-    ${waNumber ? `<div class="jfw-btn" id="jfw-wa-btn" onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','whatsappClicks'); bumpJfwCount('jfw-wa-count'); bumpStatCount('whatsapp-count-display','WhatsApp'); window.open('https://wa.me/${e(waNumber)}?text=${waMsg}','_blank'); })">
-      <div class="jfw-circle jfw-wa"><span class="jfw-count" id="jfw-wa-count" data-count="${Number(post.whatsappClicks) || 0}">${fmtK(Number(post.whatsappClicks) || 0)}</span><svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg></div>
-      <span class="jfw-label">WhatsApp</span>
-    </div>` : ""}
-    ${callNumber ? `<div class="jfw-btn" id="jfw-call-btn" onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','callClicks'); bumpJfwCount('jfw-call-count'); bumpStatCount('call-count-display','Calls'); window.location.href='tel:${e(callNumber)}'; })">
-      <div class="jfw-circle jfw-call"><span class="jfw-count" id="jfw-call-count" data-count="${Number(post.callClicks) || 0}">${fmtK(Number(post.callClicks) || 0)}</span><svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg></div>
-      <span class="jfw-label">Call</span>
-    </div>` : ""}
-    <div class="jfw-btn" id="jfw-share-btn" onclick="jfwShare()">
-      <div class="jfw-circle jfw-share"><span class="jfw-count" id="jfw-share-count" data-count="${Number(post.shares) || 0}">${fmtK(Number(post.shares) || 0)}</span><svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg></div>
-      <span class="jfw-label">Share</span>
-    </div>
-  </div>
-</div>` : ""}
 <!-- WhatsApp Channel Float Button -->
 <div id="wa-channel-btn" onclick="window.open('https://whatsapp.com/channel/0029VbCe3Mf2kNFroj9qx223','_blank')" style="position:fixed;bottom:120px;right:16px;z-index:9998;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;animation:waBounce 2s ease-in-out infinite;">
   <div style="background:#25D366;width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(37,211,102,0.5);">
@@ -3012,7 +3046,7 @@ ${(waNumber || callNumber) ? `<div id="job-float-widget" class="job-float-widget
   // action (opening WhatsApp, dialing, viewing the image, etc.) always
   // still happens; this only ever adds the popup alongside it, never
   // replaces or blocks it.
-  var ENGAGEMENT_SELECTORS = '#jfw-wa-btn, #jfw-call-btn, #wa-channel-btn, .apply-assist-btn, .apply-now-link, [onclick*="openLightbox"]';
+  var ENGAGEMENT_SELECTORS = '.qa-wa, .qa-call, .qa-share, #wa-channel-btn, .apply-assist-btn, .apply-now-link, [onclick*="openLightbox"]';
   document.addEventListener('click', function(e){
     if(e.target.closest(ENGAGEMENT_SELECTORS)) showPopup();
   }, true);
