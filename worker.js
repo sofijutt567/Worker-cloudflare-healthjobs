@@ -1541,7 +1541,7 @@ ${expiresAt ? `<div id="expiry-badge-wrap"></div>` : ""}
 
     <!-- Action Buttons -->
     <div class="post-actions-v2">
-        <span class="pa-share-count" id="pa-share-count-inline" data-count="${Number(post.shares) || 0}"><svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L7.04 9.81C6.5 9.31 5.79 9 5 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg><span id="pa-share-count-text">${fmtK(Number(post.shares) || 0)} Shares</span></span>
+        <span class="pa-share-count" id="pa-share-count-inline" data-count="${Number(post.shares) || 0}"><svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L7.04 9.81C6.5 9.31 5.79 9 5 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg><span id="pa-share-count-inline-text">${fmtK(Number(post.shares) || 0)} Shares</span></span>
         <button class="pa-icon-btn pa-like" id="like-btn" onclick="doLike()" aria-label="Like" title="Like">
             <svg viewBox="0 0 24 24"><path d="M1 21h4V9H1v12zM23 10c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-1.91l-.01-.01L23 10z"/></svg>
         </button>
@@ -1908,7 +1908,7 @@ function updateLikeUI() {
     if (btn) btn.classList.toggle('liked', isLiked);
     if (countEl) countEl.innerText = likesArr.length + " Likes";
     if (inlineCountEl) {
-        inlineCountEl.innerText = fmtK(likesArr.length);
+        inlineCountEl.innerText = formatK(likesArr.length);
         inlineCountEl.classList.toggle('liked', isLiked);
     }
 }
@@ -2803,9 +2803,14 @@ function bumpStatCount(id, label){
     if(!el) return;
     const next = (parseInt(el.dataset.count, 10) || 0) + 1;
     el.dataset.count = next;
-    el.innerText = formatK(next) + ' ' + label;
+    const textEl = document.getElementById(id + '-text') || el;
+    textEl.innerText = formatK(next) + ' ' + label;
 }
+let __shareLock = false;
 function onShareCompleted(){
+    if (__shareLock) return;   // guard: ek hi click par sirf 1 Firestore write ho
+    __shareLock = true;
+    setTimeout(() => { __shareLock = false; }, 1500);
     trackClick(POST_ID, 'shares');
     bumpStatCount('share-count-display', 'Shares');
     bumpStatCount('pa-share-count-inline', 'Shares');
@@ -3625,7 +3630,7 @@ function updateLikeUI() {
     if (btn) btn.classList.toggle('liked', isLiked);
     if (countEl) countEl.innerText = likesArr.length + " Likes";
     if (inlineCountEl) {
-        inlineCountEl.innerText = fmtK(likesArr.length);
+        inlineCountEl.innerText = formatK(likesArr.length);
         inlineCountEl.classList.toggle('liked', isLiked);
     }
 }
