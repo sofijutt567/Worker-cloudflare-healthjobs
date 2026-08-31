@@ -1330,18 +1330,21 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
 .action-btn.liked{color:var(--primary-blue);}
 .action-btn svg{width:18px;height:18px;fill:currentColor;}
 /* ── Post Actions v2: colored icon Like/Comment + direct social Share row — fixed bottom nav bar ── */
-.post-actions-v2{position:fixed;bottom:0;left:0;width:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 6px calc(10px + env(safe-area-inset-bottom)) 6px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;background:var(--bg-white);border-top:1px solid var(--border-color);box-shadow:0 -4px 15px rgba(0,0,0,0.08);z-index:999;}
+.post-actions-v2{position:fixed;bottom:0;left:0;width:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:flex-start;gap:9px;padding:9px 10px calc(9px + env(safe-area-inset-bottom)) 10px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;background:var(--bg-white);border-top:1px solid var(--border-color);box-shadow:0 -4px 15px rgba(0,0,0,0.08);z-index:999;}
 .post-actions-v2::-webkit-scrollbar{display:none;}
-.pa-icon-btn{width:32px;height:32px;border-radius:8px;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:#fff;transition:0.15s;}
+.pa-icon-btn{width:42px;height:42px;border-radius:12px;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:#fff;transition:0.15s;box-shadow:0 2px 6px rgba(0,0,0,0.18);background-image:linear-gradient(180deg,rgba(255,255,255,0.16),rgba(255,255,255,0));}
 .pa-icon-btn:active{transform:scale(0.93);}
-.pa-icon-btn svg{width:16px;height:16px;fill:currentColor;}
-.pa-like{background:#64748b;}
-.pa-like.liked{background:#0a66c2;}
-.pa-comment{background:#64748b;}
-.pa-share-count{font-size:12px;font-weight:600;color:#64748b;padding:0 4px;white-space:nowrap;flex-shrink:0;}
-.pa-fb{background:#1877F2;}
-.pa-wa{background:#25D366;}
-.pa-x{background:#000;}
+.pa-icon-btn svg{width:20px;height:20px;fill:currentColor;}
+.pa-like{background-color:#64748b;}
+.pa-like.liked{background-color:#0a66c2;}
+.pa-comment{background-color:#64748b;}
+.pa-like-count{font-size:12px;font-weight:700;color:#64748b;white-space:nowrap;flex-shrink:0;margin-right:2px;}
+.pa-like-count.liked{color:#0a66c2;}
+.pa-share-count{display:flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:#64748b;white-space:nowrap;flex-shrink:0;margin-right:auto;}
+.pa-share-count svg{width:13px;height:13px;fill:#64748b;flex-shrink:0;}
+.pa-fb{background-color:#1877F2;}
+.pa-wa{background-color:#25D366;}
+.pa-x{background-color:#000;}
 .cmt-item{display:flex;gap:8px;margin-bottom:10px;position:relative;}
 .cmt-avatar{width:30px;height:30px;min-width:30px;border-radius:50%;object-fit:cover;border:1px solid #e2e8f0;cursor:pointer;margin-top:2px;}
 .cmt-bubble{flex:1;background:#fff;border:1px solid #e8edf2;border-radius:0 10px 10px 10px;padding:8px 10px;min-width:0;}
@@ -1538,13 +1541,14 @@ ${expiresAt ? `<div id="expiry-badge-wrap"></div>` : ""}
 
     <!-- Action Buttons -->
     <div class="post-actions-v2">
+        <span class="pa-share-count" id="pa-share-count-inline" data-count="${Number(post.shares) || 0}"><svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L7.04 9.81C6.5 9.31 5.79 9 5 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg><span id="pa-share-count-text">${fmtK(Number(post.shares) || 0)} Shares</span></span>
         <button class="pa-icon-btn pa-like" id="like-btn" onclick="doLike()" aria-label="Like" title="Like">
-            <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            <svg viewBox="0 0 24 24"><path d="M1 21h4V9H1v12zM23 10c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-1.91l-.01-.01L23 10z"/></svg>
         </button>
+        <span class="pa-like-count" id="pa-like-count-inline">0</span>
         <button class="pa-icon-btn pa-comment" onclick="toggleComments()" aria-label="Comment" title="Comment">
             <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         </button>
-        <span class="pa-share-count" id="pa-share-count-inline" data-count="${Number(post.shares) || 0}">${fmtK(Number(post.shares) || 0)} Shares</span>
         <button class="pa-icon-btn pa-fb" onclick="shareToFb()" aria-label="Share on Facebook" title="Share on Facebook">
             <svg viewBox="0 0 24 24"><path d="M22 12.06C22 6.51 17.52 2 12 2S2 6.51 2 12.06c0 5.02 3.66 9.18 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.51 1.49-3.9 3.77-3.9 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.89h2.78l-.44 2.91h-2.34V22c4.78-.76 8.44-4.92 8.44-9.94z"/></svg>
         </button>
@@ -1899,9 +1903,14 @@ async function loadLikes() {
 function updateLikeUI() {
     const btn = document.getElementById('like-btn');
     const countEl = document.getElementById('like-count-display');
+    const inlineCountEl = document.getElementById('pa-like-count-inline');
     const isLiked = !!(currentUser && likesArr.includes(currentUser.uid));
     if (btn) btn.classList.toggle('liked', isLiked);
     if (countEl) countEl.innerText = likesArr.length + " Likes";
+    if (inlineCountEl) {
+        inlineCountEl.innerText = fmtK(likesArr.length);
+        inlineCountEl.classList.toggle('liked', isLiked);
+    }
 }
 
 window.doLike = async function() {
@@ -3611,9 +3620,14 @@ async function loadLikes() {
 function updateLikeUI() {
     const btn = document.getElementById('like-btn');
     const countEl = document.getElementById('like-count-display');
+    const inlineCountEl = document.getElementById('pa-like-count-inline');
     const isLiked = !!(currentUser && likesArr.includes(currentUser.uid));
     if (btn) btn.classList.toggle('liked', isLiked);
     if (countEl) countEl.innerText = likesArr.length + " Likes";
+    if (inlineCountEl) {
+        inlineCountEl.innerText = fmtK(likesArr.length);
+        inlineCountEl.classList.toggle('liked', isLiked);
+    }
 }
 
 window.doLike = async function() {
