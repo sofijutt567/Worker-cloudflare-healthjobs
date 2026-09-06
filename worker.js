@@ -3,30 +3,17 @@ var __name = (target, value) => __defProp(target, "name", { value, configurable:
 
 // worker.js
 async function getGoogleAccessToken(env) {
-  // base64url encoder — JWT requires base64url (not plain base64)
-  function toBase64Url(str) {
-    return btoa(str).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-  }
-  function toBase64UrlBytes(bytes) {
-    let bin = "";
-    for (const b of bytes) bin += String.fromCharCode(b);
-    return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-  }
-  const header = toBase64Url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+  const header = btoa(JSON.stringify({ alg: "RS256", typ: "JWT" }));
   const now = Math.floor(Date.now() / 1e3);
-  const claim = toBase64Url(JSON.stringify({
+  const claim = btoa(JSON.stringify({
     iss: env.GOOGLE_CLIENT_EMAIL,
     scope: "https://www.googleapis.com/auth/indexing",
     aud: "https://oauth2.googleapis.com/token",
     exp: now + 3600,
     iat: now
   }));
-  // Handle both literal "\n" strings and real newlines stored in env var
-  const privateKey = env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, "\n").trim();
-  const keyData = privateKey
-    .replace("-----BEGIN PRIVATE KEY-----", "")
-    .replace("-----END PRIVATE KEY-----", "")
-    .replace(/\s+/g, "");
+  const privateKey = env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, "\n").replace(/\n/g, "\n").trim();
+  const keyData = privateKey.replace("-----BEGIN PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", "").replace(/\s/g, "");
   const binaryKey = Uint8Array.from(atob(keyData), (c) => c.charCodeAt(0));
   const cryptoKey = await crypto.subtle.importKey(
     "pkcs8",
@@ -41,7 +28,7 @@ async function getGoogleAccessToken(env) {
     cryptoKey,
     new TextEncoder().encode(signingInput)
   );
-  const jwt = `${signingInput}.${toBase64UrlBytes(new Uint8Array(signature))}`;
+  const jwt = `${signingInput}.${btoa(String.fromCharCode(...new Uint8Array(signature)))}`;
   const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -1095,8 +1082,14 @@ async function buildPostPage(post, slug, verified = false, env) {
   }
   const callNumber = localNum.trim();
   const waMsg = encodeURIComponent(`Hi, I saw your post "${title}" on Health Jobs Portal and I am interested.`);
-  const applyAssistFee = post.applyAssistFee != null && Number(post.applyAssistFee) > 0 ? Number(post.applyAssistFee) : null;
-  const applyAssistFeeHtml = applyAssistFee ? `<div class="apply-assist-fee">Fee: Rs. ${applyAssistFee.toLocaleString("en-US")}</div>` : `<div class="apply-assist-fee">Service Fee Applies</div>`;
+  // applyAssistFees array سے total نکالو
+  const _feesArr = Array.isArray(post.applyAssistFees) && post.applyAssistFees.length > 0
+    ? post.applyAssistFees
+    : (post.applyAssistFee != null && Number(post.applyAssistFee) > 0 ? [{ name: 'Fee', amount: Number(post.applyAssistFee) }] : []);
+  const _totalFee = _feesArr.reduce((s, f) => s + (Number(f.amount) || 0), 0);
+  const applyAssistFeeHtml = _totalFee > 0
+    ? `<div class="apply-assist-fee">Total Fee: Rs. ${_totalFee.toLocaleString("en-US")}</div>`
+    : `<div class="apply-assist-fee">Service Fee Applies</div>`;
   let mediaHtml = "";
   if (media.length > 0) {
     mediaHtml = '<div class="media-container">' + media.map((m) => {
@@ -1414,10 +1407,17 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
 ${post.applyAssistEnabled ? `<div id="apply-assist-modal-overlay" class="aa-modal-overlay">
   <div class="aa-modal-card">
     <button class="aa-modal-close" onclick="closeApplyAssistModal()" aria-label="Close">&#10005;</button>
-    <div class="apply-assist-urdu apply-assist-main">اگر آپ خود اپلائی کرنے کی جھنجھٹ سے بچنا چاہتے ہیں تو ابھی ہم سے رابطہ کریں</div>
-    <div class="apply-assist-urdu apply-assist-sub">ہم سے اپلائی کروانے کی ایک الگ فیس ہے۔ مکمل تفصیلات جاننے اور درخواست دینے کے لیے نیچے بٹن پر کلک کریں</div>
+    ${post.applyAssistProcessEnabled ? `
+    <div class="apply-assist-urdu apply-assist-main">ہم آپ کی درخواست پروسیس کریں گے</div>
+    <div class="apply-assist-urdu apply-assist-sub">ہم آپ کی طرف سے مکمل درخواست جمع کروائیں گے۔</div>
+    <button class="apply-assist-btn" onclick="requestApplyAssist(); closeApplyAssistModal();">پروسیس نہ ہو</button>
     ${applyAssistFeeHtml}
-    <button class="apply-assist-btn" onclick="requestApplyAssist(); closeApplyAssistModal();">Apply Now</button>
+    ` : `
+    <div class="apply-assist-urdu apply-assist-main">اپلائی نہ ہو</div>
+    <div class="apply-assist-urdu apply-assist-sub">ہم سے اپلائی کروانے کی ایک الگ فیس ہے۔ مکمل تفصیلات جاننے اور درخواست دینے کے لیے نیچے بٹن پر کلک کریں</div>
+    <button class="apply-assist-btn" onclick="requestApplyAssist(); closeApplyAssistModal();">اپلائی نہ ہو</button>
+    ${applyAssistFeeHtml}
+    `}
   </div>
 </div>
 <style>
@@ -1429,7 +1429,7 @@ ${post.applyAssistEnabled ? `<div id="apply-assist-modal-overlay" class="aa-moda
 .apply-assist-urdu{font-family:'Noto Nastaliq Urdu',serif;direction:rtl;color:#1a1a1a;}
 .apply-assist-main{font-size:19px;font-weight:700;line-height:2.2;margin-bottom:8px;}
 .apply-assist-sub{font-size:15px;font-weight:400;line-height:2.1;color:#555;margin-bottom:16px;}
-.apply-assist-fee{display:inline-block;background:#fff7e6;color:#b45309;border:1px solid #fde68a;padding:5px 16px;border-radius:20px;font-size:13.5px;font-weight:700;margin-bottom:16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}
+.apply-assist-fee{display:inline-block;background:#fff7e6;color:#b45309;border:1px solid #fde68a;padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:600;margin-top:8px;margin-bottom:4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}
 .apply-assist-btn{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0a66c2;color:#fff;border:none;border-radius:0;padding:10px 30px;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:0.3px;transition:background 0.15s;}
 .apply-assist-btn:hover{background:#004182;}
 .apply-assist-btn:disabled{background:#94a3b8;cursor:default;}
@@ -1629,7 +1629,7 @@ ${post.applyAssistEnabled ? `<div class="apply-assist-card">
 .apply-assist-urdu{font-family:'Noto Nastaliq Urdu',serif;direction:rtl;color:#1a1a1a;}
 .apply-assist-main{font-size:19px;font-weight:700;line-height:2.2;margin-bottom:8px;}
 .apply-assist-sub{font-size:15px;font-weight:400;line-height:2.1;color:#555;margin-bottom:14px;}
-.apply-assist-fee{display:inline-block;background:#fff7e6;color:#b45309;border:1px solid #fde68a;padding:5px 16px;border-radius:20px;font-size:13.5px;font-weight:700;margin-bottom:14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}
+.apply-assist-fee{display:inline-block;background:#fff7e6;color:#b45309;border:1px solid #fde68a;padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:600;margin-top:8px;margin-bottom:4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}
 .apply-assist-btn{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0a66c2;color:#fff;border:none;border-radius:0;padding:10px 30px;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:0.3px;transition:background 0.15s;}
 .apply-assist-btn:hover{background:#004182;}
 .apply-assist-btn:disabled{background:#94a3b8;cursor:default;}
