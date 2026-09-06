@@ -1405,22 +1405,7 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
 </head>
 <body>
 
-${post.applyAssistEnabled ? `<div id="apply-assist-modal-overlay" class="aa-modal-overlay">
-  <div class="aa-modal-card">
-    <button class="aa-modal-close" onclick="closeApplyAssistModal()" aria-label="Close">&#10005;</button>
-    ${post.applyAssistProcessEnabled ? `
-    <div class="apply-assist-urdu apply-assist-main">ہم آپ کی درخواست پروسیس کریں گے</div>
-    <div class="apply-assist-urdu apply-assist-sub">ہم آپ کی طرف سے مکمل درخواست جمع کروائیں گے۔</div>
-    <button class="apply-assist-btn" onclick="requestApplyAssist(); closeApplyAssistModal();">پروسیس نہ ہو</button>
-    ${applyAssistFeeHtml}
-    ` : `
-    <div class="apply-assist-urdu apply-assist-main">اپلائی نہ ہو</div>
-    <div class="apply-assist-urdu apply-assist-sub">ہم سے اپلائی کروانے کی ایک الگ فیس ہے۔ مکمل تفصیلات جاننے اور درخواست دینے کے لیے نیچے بٹن پر کلک کریں</div>
-    <button class="apply-assist-btn" onclick="requestApplyAssist(); closeApplyAssistModal();">اپلائی نہ ہو</button>
-    ${applyAssistFeeHtml}
-    `}
-  </div>
-</div>
+${post.applyAssistEnabled ? ('<div id="apply-assist-modal-overlay" class="aa-modal-overlay"><div class="aa-modal-card"><button class="aa-modal-close" onclick="closeApplyAssistModal()" aria-label="Close">&#10005;</button>' + (post.applyAssistProcessEnabled ? '<div class="apply-assist-urdu apply-assist-main">ہم آپ کی درخواست پروسیس کریں گے</div><div class="apply-assist-urdu apply-assist-sub">ہم آپ کی طرف سے مکمل درخواست جمع کروائیں گے۔</div><button class="apply-assist-btn" onclick="requestApplyAssist(); closeApplyAssistModal();">پروسیس نہ ہو</button>' : '<div class="apply-assist-urdu apply-assist-main">اپلائی نہ ہو</div><div class="apply-assist-urdu apply-assist-sub">ہم سے اپلائی کروانے کی ایک الگ فیس ہے۔</div><button class="apply-assist-btn" onclick="requestApplyAssist(); closeApplyAssistModal();">اپلائی نہ ہو</button>') + applyAssistFeeHtml + '</div></div>') : ''}
 <style>
 .aa-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;}
 .aa-modal-overlay.aa-hidden{display:none;}
@@ -2809,7 +2794,10 @@ function bumpStatCount(id, label){
     if(!el) return;
     const next = (parseInt(el.dataset.count, 10) || 0) + 1;
     el.dataset.count = next;
-    const textEl = document.getElementById(id + '-text') || el;
+    // text span — try id+'-text' first, then id+'-inline-text', then el itself
+    const textEl = document.getElementById(id + '-text')
+        || document.getElementById(id + '-inline-text')
+        || el;
     textEl.innerText = formatK(next) + ' ' + label;
 }
 let __shareLock = false;
@@ -2835,16 +2823,16 @@ function sharePost(){
 }
 function shareToFb(){
     window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(${JSON.stringify(canonicalUrl)}), '_blank', 'noopener,width=600,height=500');
-    onShareCompleted();
+    requireAuth(function(){ onShareCompleted(); });
 }
 function shareToWa(){
     const msg = ${JSON.stringify(title)} + ' - ' + ${JSON.stringify(canonicalUrl)};
     window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
-    onShareCompleted();
+    requireAuth(function(){ onShareCompleted(); });
 }
 function shareToX(){
     window.open('https://twitter.com/intent/tweet?url=' + encodeURIComponent(${JSON.stringify(canonicalUrl)}) + '&text=' + encodeURIComponent(${JSON.stringify(title)}), '_blank', 'noopener,width=600,height=500');
-    onShareCompleted();
+    requireAuth(function(){ onShareCompleted(); });
 }
 
 /* ── Job Apply Float Widget logic ── */
