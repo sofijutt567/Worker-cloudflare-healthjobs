@@ -3,17 +3,30 @@ var __name = (target, value) => __defProp(target, "name", { value, configurable:
 
 // worker.js
 async function getGoogleAccessToken(env) {
-  const header = btoa(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+  // base64url encoder — JWT requires base64url (not plain base64)
+  function toBase64Url(str) {
+    return btoa(str).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+  }
+  function toBase64UrlBytes(bytes) {
+    let bin = "";
+    for (const b of bytes) bin += String.fromCharCode(b);
+    return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+  }
+  const header = toBase64Url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
   const now = Math.floor(Date.now() / 1e3);
-  const claim = btoa(JSON.stringify({
+  const claim = toBase64Url(JSON.stringify({
     iss: env.GOOGLE_CLIENT_EMAIL,
     scope: "https://www.googleapis.com/auth/indexing",
     aud: "https://oauth2.googleapis.com/token",
     exp: now + 3600,
     iat: now
   }));
-  const privateKey = env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, "\n").replace(/\n/g, "\n").trim();
-  const keyData = privateKey.replace("-----BEGIN PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", "").replace(/\s/g, "");
+  // Handle both literal "\n" strings and real newlines stored in env var
+  const privateKey = env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, "\n").trim();
+  const keyData = privateKey
+    .replace("-----BEGIN PRIVATE KEY-----", "")
+    .replace("-----END PRIVATE KEY-----", "")
+    .replace(/\s+/g, "");
   const binaryKey = Uint8Array.from(atob(keyData), (c) => c.charCodeAt(0));
   const cryptoKey = await crypto.subtle.importKey(
     "pkcs8",
@@ -28,7 +41,7 @@ async function getGoogleAccessToken(env) {
     cryptoKey,
     new TextEncoder().encode(signingInput)
   );
-  const jwt = `${signingInput}.${btoa(String.fromCharCode(...new Uint8Array(signature)))}`;
+  const jwt = `${signingInput}.${toBase64UrlBytes(new Uint8Array(signature))}`;
   const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -2784,7 +2797,7 @@ const APPLY_ASSIST_WORKER_URL = "https://resolve.sufiangsufiang50.workers.dev";
 function requestApplyAssist(){
     const btn = document.querySelector('.apply-assist-btn');
     if(btn){ btn.disabled = true; btn.textContent = 'Loading...'; }
-    let applyUrl = APPLY_ASSIST_WORKER_URL + '/apply?job=' + encodeURIComponent(POST_ID);
+    let applyUrl = APPLY_ASSIST_WORKER_URL + '/apply?job=' + encodeURIComponent(slug);
     if (currentUser) {
         applyUrl += '&uid=' + encodeURIComponent(currentUser.uid);
         applyUrl += '&uemail=' + encodeURIComponent(currentUser.email || '');
