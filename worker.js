@@ -1405,7 +1405,13 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
 </head>
 <body>
 
-${post.applyAssistEnabled ? ('<div id="apply-assist-modal-overlay" class="aa-modal-overlay"><div class="aa-modal-card"><button class="aa-modal-close" onclick="closeApplyAssistModal()" aria-label="Close">&#10005;</button>' + (post.applyAssistProcessEnabled ? '<div class="apply-assist-urdu apply-assist-main">ہم آپ کی درخواست پروسیس کریں گے</div><div class="apply-assist-urdu apply-assist-sub">ہم آپ کی طرف سے مکمل درخواست جمع کروائیں گے۔</div><button class="apply-assist-btn" onclick="requestApplyAssist(); closeApplyAssistModal();">پروسیس نہ ہو</button>' : '<div class="apply-assist-urdu apply-assist-main">اپلائی نہ ہو</div><div class="apply-assist-urdu apply-assist-sub">ہم سے اپلائی کروانے کی ایک الگ فیس ہے۔</div><button class="apply-assist-btn" onclick="requestApplyAssist(); closeApplyAssistModal();">اپلائی نہ ہو</button>') + applyAssistFeeHtml + '</div></div>') : ''}
+${(function(){
+  if(!post.applyAssistEnabled) return '';
+  const innerHtml = post.applyAssistProcessEnabled
+    ? '<div class="apply-assist-urdu apply-assist-main">ہم آپ کی درخواست پروسیس کریں گے</div><div class="apply-assist-urdu apply-assist-sub">ہم آپ کی طرف سے مکمل درخواست جمع کروائیں گے۔</div><button class="apply-assist-btn" onclick="requestApplyAssist(); closeApplyAssistModal();">پروسیس نہ ہو</button>'
+    : '<div class="apply-assist-urdu apply-assist-main">اپلائی نہ ہو</div><div class="apply-assist-urdu apply-assist-sub">ہم سے اپلائی کروانے کی ایک الگ فیس ہے۔</div><button class="apply-assist-btn" onclick="requestApplyAssist(); closeApplyAssistModal();">اپلائی نہ ہو</button>';
+  return '<div id="apply-assist-modal-overlay" class="aa-modal-overlay"><div class="aa-modal-card"><button class="aa-modal-close" onclick="closeApplyAssistModal()" aria-label="Close">&#10005;</button>' + innerHtml + applyAssistFeeHtml + '</div></div>';
+})()}
 <style>
 .aa-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;}
 .aa-modal-overlay.aa-hidden{display:none;}
@@ -1422,12 +1428,16 @@ ${post.applyAssistEnabled ? ('<div id="apply-assist-modal-overlay" class="aa-mod
 </style>
 <script>
 function closeApplyAssistModal(){
-    const overlay = document.getElementById('apply-assist-modal-overlay');
+    var overlay = document.getElementById('apply-assist-modal-overlay');
     if(overlay) overlay.classList.add('aa-hidden');
     try { sessionStorage.setItem('applyAssistModalClosed', '1'); } catch(e){}
 }
+function openApplyAssistModal(){
+    var overlay = document.getElementById('apply-assist-modal-overlay');
+    if(overlay) overlay.classList.remove('aa-hidden');
+}
 document.addEventListener('DOMContentLoaded', function(){
-    const overlay = document.getElementById('apply-assist-modal-overlay');
+    var overlay = document.getElementById('apply-assist-modal-overlay');
     if(!overlay) return;
     try {
         if(sessionStorage.getItem('applyAssistModalClosed') === '1'){
@@ -1435,7 +1445,7 @@ document.addEventListener('DOMContentLoaded', function(){
         }
     } catch(e){}
 });
-<\/script>` : ""}
+<\/script>
 
 <!-- Pull to Refresh -->
 <div id="ptr-indicator" style="position:fixed;top:0;left:0;right:0;z-index:9999;display:flex;justify-content:center;align-items:center;height:0;overflow:hidden;transition:height 0.2s ease;background:transparent;pointer-events:none;">
