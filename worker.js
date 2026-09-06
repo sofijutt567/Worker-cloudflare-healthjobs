@@ -1082,7 +1082,6 @@ async function buildPostPage(post, slug, verified = false, env) {
   }
   const callNumber = localNum.trim();
   const waMsg = encodeURIComponent(`Hi, I saw your post "${title}" on Health Jobs Portal and I am interested.`);
-  // applyAssistFees array سے total نکالو
   const _feesArr = Array.isArray(post.applyAssistFees) && post.applyAssistFees.length > 0
     ? post.applyAssistFees
     : (post.applyAssistFee != null && Number(post.applyAssistFee) > 0 ? [{ name: 'Fee', amount: Number(post.applyAssistFee) }] : []);
@@ -1217,13 +1216,15 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
 .jfw-tooltip-x{position:absolute;top:9px;right:9px;cursor:pointer;color:#9ca3af;font-weight:800;font-size:14px;line-height:1;}
 
 /* ── Quick Action Row (WhatsApp / Call / Share) — above job details table ── */
-.quick-actions-row{display:flex;justify-content:center;gap:10px;margin:16px 0;flex-wrap:wrap;}
-.qa-btn{flex:1;max-width:240px;min-width:100px;display:flex;align-items:center;justify-content:center;gap:7px;padding:11px 10px;border-radius:24px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;transition:0.2s;border:1.5px solid transparent;}
-.qa-btn svg{width:17px;height:17px;fill:currentColor;flex-shrink:0;}
+.quick-actions-row{display:flex;justify-content:center;gap:8px;margin:16px 0;flex-wrap:wrap;align-items:center;}
+.qa-btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:7px 13px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:0.2s;border:1.5px solid transparent;}
+.qa-btn svg{width:14px;height:14px;fill:currentColor;flex-shrink:0;}
 .qa-wa{background:#25D366;color:#fff;}
 .qa-wa:active{background:#1DA851;}
 .qa-call{background:#0a66c2;color:#fff;}
 .qa-call:active{background:#075396;}
+.qa-apply{background:#DC2626;color:#fff;}
+.qa-apply:active{background:#B91C1C;}
 .qa-share{background:#fff;color:#0a66c2;border-color:#0a66c2;}
 .qa-share:active{background:#f0f7ff;}
 
@@ -1550,6 +1551,10 @@ ${expiresAt ? `<div id="expiry-badge-wrap"></div>` : ""}
     <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
     Call
   </button>` : ""}
+  ${post.applyAssistEnabled ? `<button class="qa-btn qa-apply" onclick="openApplyAssistModal()">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zm-2 8v-1H7v-2h3v-1l3 2-3 2z"/></svg>
+    اپلائی نہ ہو
+  </button>` : ""}
 </div>
 
     <!-- Action Buttons -->
@@ -1618,22 +1623,7 @@ ${mediaHtml}
 </div>
 <div class="job-desc">${desc}</div>
 
-${post.applyAssistEnabled ? `<div class="apply-assist-card">
-  <div class="apply-assist-urdu apply-assist-main">اگر آپ ہم سے اپلائی کروانا چاہتے ہیں تو ابھی رابطہ کریں</div>
-  <div class="apply-assist-urdu apply-assist-sub">ہم سے اپلائی کروانے کی ایک الگ فیس ہے۔ مکمل تفصیلات جاننے اور درخواست دینے کے لیے نیچے بٹن پر کلک کریں</div>
-  ${applyAssistFeeHtml}
-  <button class="apply-assist-btn" onclick="requestApplyAssist()">Apply Now</button>
-</div>
-<style>
-.apply-assist-card{background:#ffffff;border:1px solid #e5e5e5;border-radius:0;padding:18px 16px;margin:14px 0;text-align:center;}
-.apply-assist-urdu{font-family:'Noto Nastaliq Urdu',serif;direction:rtl;color:#1a1a1a;}
-.apply-assist-main{font-size:19px;font-weight:700;line-height:2.2;margin-bottom:8px;}
-.apply-assist-sub{font-size:15px;font-weight:400;line-height:2.1;color:#555;margin-bottom:14px;}
-.apply-assist-fee{display:inline-block;background:#fff7e6;color:#b45309;border:1px solid #fde68a;padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:600;margin-top:8px;margin-bottom:4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}
-.apply-assist-btn{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0a66c2;color:#fff;border:none;border-radius:0;padding:10px 30px;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:0.3px;transition:background 0.15s;}
-.apply-assist-btn:hover{background:#004182;}
-.apply-assist-btn:disabled{background:#94a3b8;cursor:default;}
-</style>` : ""}
+
 
 <a href="https://whatsapp.com/channel/0029VbCe3Mf2kNFroj9qx223" target="_blank" rel="noopener" style="display:block;margin:14px 0;">
   <img src="https://healthjobportal.com/images/share.png" alt="Share and earn reward, make friends" style="width:100%;height:auto;border-radius:10px;display:block;">
@@ -2797,7 +2787,10 @@ const APPLY_ASSIST_WORKER_URL = "https://resolve.sufiangsufiang50.workers.dev";
 function requestApplyAssist(){
     const btn = document.querySelector('.apply-assist-btn');
     if(btn){ btn.disabled = true; btn.textContent = 'Loading...'; }
-    let applyUrl = APPLY_ASSIST_WORKER_URL + '/apply?job=' + encodeURIComponent(slug);
+    const _slug = (typeof POST_ID !== 'undefined' && POST_ID)
+        ? POST_ID
+        : window.location.pathname.replace(/^\/(?:jobs|updates)\//, '').replace(/\/$/, '').trim();
+    let applyUrl = APPLY_ASSIST_WORKER_URL + '/apply?job=' + encodeURIComponent(_slug);
     if (currentUser) {
         applyUrl += '&uid=' + encodeURIComponent(currentUser.uid);
         applyUrl += '&uemail=' + encodeURIComponent(currentUser.email || '');
