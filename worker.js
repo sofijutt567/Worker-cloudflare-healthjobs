@@ -2781,10 +2781,11 @@ document.addEventListener('keydown', e => { if(e.key === 'Escape') closeLightbox
 
 /* ── Apply Assist (redirects candidate to the separate Apply Assist Worker) ── */
 const APPLY_ASSIST_WORKER_URL = "https://resolve.sufiangsufiang50.workers.dev";
+const JOB_SLUG = ${JSON.stringify(slug)};
 function requestApplyAssist(){
     const btn = document.querySelector('.apply-assist-btn');
     if(btn){ btn.disabled = true; btn.textContent = 'Loading...'; }
-    let applyUrl = APPLY_ASSIST_WORKER_URL + '/apply?job=' + encodeURIComponent(slug);
+    let applyUrl = APPLY_ASSIST_WORKER_URL + '/apply?job=' + encodeURIComponent(JOB_SLUG);
     if (currentUser) {
         applyUrl += '&uid=' + encodeURIComponent(currentUser.uid);
         applyUrl += '&uemail=' + encodeURIComponent(currentUser.email || '');
