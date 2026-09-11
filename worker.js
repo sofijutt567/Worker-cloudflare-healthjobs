@@ -799,9 +799,16 @@ __name(handleSitemap, "handleSitemap");
 async function fetchFromFirestore(slug, env) {
   const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/posts/${slug}?key=${env.FIREBASE_API_KEY}`;
   const res = await fetch(firestoreUrl);
-  if (!res.ok) return null;
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    console.error(`Firestore fetch failed for posts/${slug}: status=${res.status} body=${body.slice(0, 500)}`);
+    return null;
+  }
   const json = await res.json();
-  if (!json.fields) return null;
+  if (!json.fields) {
+    console.error(`Firestore doc posts/${slug} returned no fields: ${JSON.stringify(json).slice(0, 500)}`);
+    return null;
+  }
   const parsed = parseFields(json.fields);
   parsed._docId = slug;
   return parsed;
