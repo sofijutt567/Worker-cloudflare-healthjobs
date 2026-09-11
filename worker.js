@@ -1098,7 +1098,7 @@ async function buildPostPage(post, slug, verified = false, env) {
       return "";
     }).join("") + "</div>";
   }
-  const extLinkHtml = extLink.trim() ? `<div class="apply-now-link" onclick="requireAuth(async function(){ await trackClick('${e(slug)}','linkClicks'); window.open('${e(extLink)}','_blank'); })" style="display:inline-flex;align-items:center;gap:8px;margin-top:10px;margin-bottom:5px;padding:10px 16px;background:#f0f7ff;border:1px solid #d0e1fd;border-radius:8px;text-decoration:none;color:#1967d2;font-size:14px;font-weight:600;cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="#1967d2"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>Apply Now</div>` : "";
+  const extLinkHtml = extLink.trim() ? `<button class="qa-btn qa-applynow" onclick="requireAuth(async function(){ await trackClick('${e(slug)}','linkClicks'); window.open('${e(extLink)}','_blank'); })"><svg viewBox="0 0 24 24"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>Apply Now</button>` : "";
   const whatsappBtn = waNumber ? `<div class="circle-btn-wrapper" style="cursor:pointer;" onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','whatsappClicks'); bumpStatCount('whatsapp-count-display','WhatsApp'); window.open('https://wa.me/${e(waNumber)}?text=${waMsg}','_blank'); })"><div class="circle-btn btn-wa"><svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg></div><span class="btn-label">WhatsApp</span></div>` : "";
   const callBtn = callNumber ? `<div class="circle-btn-wrapper" style="cursor:pointer;" onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','callClicks'); bumpStatCount('call-count-display','Calls'); window.location.href='tel:${e(callNumber)}'; })"><div class="circle-btn btn-call"><svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg></div><span class="btn-label">Call</span></div>` : "";
   const chatBtn = webChat && posterId ? `<div class="circle-btn-wrapper" style="cursor:pointer;" onclick="requireAuth(function(){ trackClick('${e(slug)}','chatClicks'); window.location.href='${SITE_URL}/chat.html?uid=${e(posterId)}'; })"><div class="circle-btn btn-chat"><svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg></div><span class="btn-label">Web Chat</span></div>` : "";
@@ -1216,17 +1216,21 @@ main{width:100%;padding:0 10px;max-width:700px;margin:0 auto;box-sizing:border-b
 .jfw-tooltip-x{position:absolute;top:9px;right:9px;cursor:pointer;color:#9ca3af;font-weight:800;font-size:14px;line-height:1;}
 
 /* ── Quick Action Row (WhatsApp / Call / Share) — above job details table ── */
-.quick-actions-row{display:flex;justify-content:center;gap:8px;margin:16px 0;flex-wrap:wrap;align-items:center;}
-.qa-btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:7px 13px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:0.2s;border:1.5px solid transparent;}
-.qa-btn svg{width:14px;height:14px;fill:currentColor;flex-shrink:0;}
-.qa-wa{background:#25D366;color:#fff;}
-.qa-wa:active{background:#1DA851;}
-.qa-call{background:#0a66c2;color:#fff;}
-.qa-call:active{background:#075396;}
-.qa-apply{background:#DC2626;color:#fff;}
-.qa-apply:active{background:#B91C1C;}
+.quick-actions-row{display:flex;justify-content:center;gap:6px;margin:14px 0;flex-wrap:wrap;align-items:center;}
+.qa-btn{display:inline-flex;align-items:center;justify-content:center;gap:4px;padding:5px 11px;border-radius:16px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:0.2s;border:1px solid transparent;letter-spacing:0.1px;}
+.qa-btn svg{width:11px;height:11px;fill:currentColor;flex-shrink:0;}
+.qa-wa{background:#EAFBF1;color:#1B8A4A;border-color:#BFEBD1;}
+.qa-wa:active{background:#DCF6E7;}
+.qa-call{background:#EAF2FC;color:#0a66c2;border-color:#C9DEF6;}
+.qa-call:active{background:#DCEAFA;}
+.qa-apply{background:#0a66c2;color:#fff;}
+.qa-apply:active{background:#075396;}
 .qa-share{background:#fff;color:#0a66c2;border-color:#0a66c2;}
 .qa-share:active{background:#f0f7ff;}
+.qa-applynow{background:#F0F7FF;color:#1967D2;border-color:#D0E1FD;}
+.qa-applynow:active{background:#E2EFFE;}
+.qa-process{background:#FEFBEA;color:#92600C;border-color:#FBE7A1;}
+.qa-process:active{background:#FDF3D1;}
 
 .btn-wa{background:var(--wa-green);}.btn-wa:hover{background:#1DA851;transform:translateY(-3px);box-shadow:0 6px 12px rgba(37,211,102,0.3);}
 .btn-call{background:var(--call-blue);}.btn-call:hover{background:#005bb5;transform:translateY(-3px);box-shadow:0 6px 12px rgba(0,120,255,0.3);}
@@ -1546,10 +1550,11 @@ ${expiresAt ? `<div id="expiry-badge-wrap"></div>` : ""}
     <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
     Call
   </button>` : ""}
-  ${post.applyAssistEnabled ? `<button class="qa-btn qa-apply" onclick="openApplyAssistModal()">
+  ${post.applyAssistEnabled ? `<button class="qa-btn qa-process" onclick="openApplyAssistModal()">
     <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zm-2 8v-1H7v-2h3v-1l3 2-3 2z"/></svg>
-    اپلائی نہ ہو
+    Process Now${_totalFee > 0 ? ` · Rs. ${_totalFee.toLocaleString("en-US")}` : ""}
   </button>` : ""}
+  ${extLinkHtml}
 </div>
 
     <!-- Action Buttons -->
@@ -1624,27 +1629,24 @@ ${mediaHtml}
   <img src="https://healthjobportal.com/images/share.png" alt="Share and earn reward, make friends" style="width:100%;height:auto;border-radius:10px;display:block;">
 </a>
 
-${extLinkHtml}
 ${isEmployer ? `<div class="fraud-warning-card">
   <div class="fraud-warning-icon">
-    <svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M12 2L1 21h22L12 2z" fill="#DC2626"/><path d="M12 9v5" stroke="#fff" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="1.1" fill="#fff"/></svg>
+    <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><circle cx="12" cy="12" r="10" stroke="#64748B" stroke-width="1.6"/><path d="M12 8v5" stroke="#64748B" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="16.2" r="1" fill="#64748B"/></svg>
   </div>
   <div class="fraud-warning-text">
-    <div class="fraud-warning-title">Stay Safe From Job Fraud</div>
-    <div class="fraud-warning-body">Please contact this employer carefully and never pay any money to apply for or accept a job. Health Jobs Portal is not responsible for any fraud, scam, or financial loss related to this post.</div>
+    <span class="fraud-warning-title">Safety tip:</span>
+    <span class="fraud-warning-body">Verify employer details before applying, and never pay any money to apply for or accept a job. Health Jobs Portal is not responsible for any fraud, scam, or financial loss related to this post.</span>
   </div>
 </div>
 <style>
-.fraud-warning-card{display:flex;align-items:flex-start;gap:12px;background:#FEF2F2;border:1px solid #FCA5A5;border-left:4px solid #DC2626;border-radius:12px;padding:14px 16px;margin:16px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}
-.fraud-warning-icon{flex-shrink:0;width:32px;height:32px;border-radius:50%;background:#FEE2E2;display:flex;align-items:center;justify-content:center;margin-top:1px;}
-.fraud-warning-text{flex:1;min-width:0;}
-.fraud-warning-title{font-size:13.5px;font-weight:700;color:#991B1B;letter-spacing:0.1px;margin-bottom:4px;}
-.fraud-warning-body{font-size:12.5px;font-weight:500;color:#7F1D1D;line-height:1.6;}
+.fraud-warning-card{display:flex;align-items:flex-start;gap:8px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:10px 12px;margin:16px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}
+.fraud-warning-icon{flex-shrink:0;width:16px;height:16px;margin-top:2px;}
+.fraud-warning-text{flex:1;min-width:0;font-size:12.5px;line-height:1.55;}
+.fraud-warning-title{font-weight:600;color:#334155;}
+.fraud-warning-body{font-weight:400;color:#64748B;}
 </style>` : ""}
 <!-- Share Buttons Row -->
 <div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;">
-${whatsapp ? `<div onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','whatsappClicks'); bumpStatCount('whatsapp-count-display','WhatsApp'); window.open('https://wa.me/${waNumber}?text=${waMsg}','_blank'); })" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#25D366;color:white;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>WhatsApp</div>` : ""}
-${callNumber ? `<div onclick="requireAuth(async function(){ await trackClick('${e(postDocId)}','callClicks'); bumpStatCount('call-count-display','Calls'); window.location.href='tel:${e(callNumber)}'; })"style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#0078FF;color:white;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>Call</div>` : ""}
 <div onclick="openReportPopup()" style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;background:#fff0f0;color:#ef4444;border:1px solid #fecaca;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;"><svg width="12" height="12" viewBox="0 0 24 24" fill="#ef4444"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>Report</div>
 </div>
 
@@ -3061,7 +3063,7 @@ async function submitReport(){
   // action (opening WhatsApp, dialing, viewing the image, etc.) always
   // still happens; this only ever adds the popup alongside it, never
   // replaces or blocks it.
-  var ENGAGEMENT_SELECTORS = '.qa-wa, .qa-call, .qa-share, #wa-channel-btn, .apply-assist-btn, .apply-now-link, [onclick*="openLightbox"]';
+  var ENGAGEMENT_SELECTORS = '.qa-wa, .qa-call, .qa-share, .qa-applynow, #wa-channel-btn, .apply-assist-btn, [onclick*="openLightbox"]';
   document.addEventListener('click', function(e){
     if(e.target.closest(ENGAGEMENT_SELECTORS)) showPopup();
   }, true);
