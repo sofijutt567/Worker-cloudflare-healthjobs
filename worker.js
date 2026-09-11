@@ -274,7 +274,7 @@ var worker_default = {
         post = await fetchFromFirestore(slug, env);
       } catch (e) {
         console.error("Firestore error:", e);
-        return errorPage(500, "Server Error", "Could not load this post.");
+        return errorPage(503, "Temporarily Unavailable", "This page is having trouble loading right now. Please try again in a few minutes.", { "Retry-After": "60" });
       }
       if (!post) return errorPage(
         404,
@@ -799,10 +799,11 @@ __name(handleSitemap, "handleSitemap");
 async function fetchFromFirestore(slug, env) {
   const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/posts/${slug}?key=${env.FIREBASE_API_KEY}`;
   const res = await fetch(firestoreUrl);
+  if (res.status === 404) return null;
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     console.error(`Firestore fetch failed for posts/${slug}: status=${res.status} body=${body.slice(0, 500)}`);
-    return null;
+    throw new Error(`Firestore error ${res.status}`);
   }
   const json = await res.json();
   if (!json.fields) {
@@ -1768,6 +1769,18 @@ ${faqSectionHtml}
     </div>
     <div class="related-grid" id="salary-80-grid"></div>
 </div>
+<!-- ── Related Updates Section ───────────────────────────────────────── -->
+<div class="related-section">
+    <div class="related-heading">
+        <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        Latest Health Updates
+    </div>
+    <div id="related-updates-list">
+        <div class="related-skeleton"></div>
+        <div class="related-skeleton"></div>
+        <div class="related-skeleton"></div>
+    </div>
+</div>
 </div>
 </main>
 </div>
@@ -2347,6 +2360,7 @@ async function trackView(postId) {
 window.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => trackView(${JSON.stringify(slug)}), 2000);
     loadRelatedJobs();
+    loadRelatedUpdates();
 });
 
 // \u2500\u2500 Related Jobs Loader \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -3461,6 +3475,7 @@ ${chatBtn}
     <div class="stats-bar">
         <span id="like-count-display">Loading...</span>
         <span id="cmt-count-display">0 Comments</span>
+        <span id="share-count-display" data-count="${Number(post.shares) || 0}">${fmtK(Number(post.shares) || 0)} Shares</span>
     </div>
 
     <!-- Action Buttons -->
@@ -4125,8 +4140,30 @@ window.openLightbox = function(url){
     document.body.style.overflow = 'hidden';
 }
 function sharePost(){
-    if(navigator.share){ navigator.share({ title: '${e(title)}', url: '${e(canonicalUrl)}' }); }
-    else { navigator.clipboard.writeText('${e(canonicalUrl)}'); alert('Link copied!'); }
+    if(navigator.share){
+        navigator.share({ title: '${e(title)}', url: '${e(canonicalUrl)}' })
+            .then(function(){ trackShareUpdate(); })
+            .catch(function(){});
+    } else {
+        navigator.clipboard.writeText('${e(canonicalUrl)}');
+        alert('Link copied!');
+        trackShareUpdate();
+    }
+}
+function trackShareUpdate(){
+    try {
+        fetch('/api/track', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ postId: POST_ID, field: 'shares', collection: 'posts' })
+        });
+        var el = document.getElementById('share-count-display');
+        if (el) {
+            var n = (parseInt(el.getAttribute('data-count') || '0', 10) || 0) + 1;
+            el.setAttribute('data-count', n);
+            el.innerText = n + ' Shares';
+        }
+    } catch(e) {}
 }
 <\/script>
 <!-- WhatsApp Channel Float Button -->
@@ -4869,14 +4906,16 @@ function htmlResponse(html, extra = {}) {
   });
 }
 __name(htmlResponse, "htmlResponse");
-function errorPage(status, heading, message) {
+function errorPage(status, heading, message, extraHeaders = {}) {
+  const robotsTag = status === 404 ? `<meta name="robots" content="noindex">` : "";
   return new Response(
-    `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${heading} | Health Jobs Portal</title><meta name="robots" content="noindex"><style>*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,sans-serif;}body{background:#f3f2ef;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}.box{background:white;border-radius:14px;padding:40px 30px;max-width:420px;width:100%;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.08);}.icon{font-size:52px;margin-bottom:16px;}h1{font-size:22px;color:#0a66c2;margin-bottom:10px;}p{color:#555;font-size:15px;line-height:1.6;margin-bottom:24px;}a{display:inline-block;padding:12px 28px;background:#0a66c2;color:white;border-radius:24px;text-decoration:none;font-weight:700;font-size:14px;}</style></head><body><div class="box"><div class="icon">${status === 404 ? "\u{1F50D}" : "\u26A0\uFE0F"}</div><h1>${heading}</h1><p>${message}</p><a href="${SITE_URL}/">Browse All Jobs</a></div></body></html>`,
+    `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${heading} | Health Jobs Portal</title>${robotsTag}<style>*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,sans-serif;}body{background:#f3f2ef;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}.box{background:white;border-radius:14px;padding:40px 30px;max-width:420px;width:100%;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.08);}.icon{font-size:52px;margin-bottom:16px;}h1{font-size:22px;color:#0a66c2;margin-bottom:10px;}p{color:#555;font-size:15px;line-height:1.6;margin-bottom:24px;}a{display:inline-block;padding:12px 28px;background:#0a66c2;color:white;border-radius:24px;text-decoration:none;font-weight:700;font-size:14px;}</style></head><body><div class="box"><div class="icon">${status === 404 ? "\u{1F50D}" : "\u26A0\uFE0F"}</div><h1>${heading}</h1><p>${message}</p><a href="${SITE_URL}/">Browse All Jobs</a></div></body></html>`,
     {
       status,
       headers: {
         "Content-Type": "text/html;charset=UTF-8",
-        "Cache-Control": "no-store"
+        "Cache-Control": "no-store",
+        ...extraHeaders
       }
     }
   );
