@@ -1769,10 +1769,9 @@ ${faqSectionHtml}
     </div>
     <div class="related-grid" id="salary-80-grid"></div>
 </div>
-<!-- ── Related Updates Section ───────────────────────────────────────── -->
-<div class="related-section">
+<div class="related-section" id="related-updates-section">
     <div class="related-heading">
-        <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor;"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
         Latest Health Updates
     </div>
     <div id="related-updates-list">
@@ -4142,15 +4141,15 @@ window.openLightbox = function(url){
 function sharePost(){
     if(navigator.share){
         navigator.share({ title: '${e(title)}', url: '${e(canonicalUrl)}' })
-            .then(function(){ trackShareUpdate(); })
+            .then(function(){ bumpShareCount(); })
             .catch(function(){});
     } else {
         navigator.clipboard.writeText('${e(canonicalUrl)}');
         alert('Link copied!');
-        trackShareUpdate();
+        bumpShareCount();
     }
 }
-function trackShareUpdate(){
+function bumpShareCount(){
     try {
         fetch('/api/track', {
             method: 'POST',
@@ -4163,7 +4162,13 @@ function trackShareUpdate(){
             el.setAttribute('data-count', n);
             el.innerText = n + ' Shares';
         }
-    } catch(e) {}
+        var el2 = document.getElementById('pa-share-count-inline-text');
+        if (el2) {
+            var m = (parseInt(el2.getAttribute('data-count') || '0', 10) || 0) + 1;
+            el2.setAttribute('data-count', m);
+            el2.innerText = m + ' Shares';
+        }
+    } catch(ex) {}
 }
 <\/script>
 <!-- WhatsApp Channel Float Button -->
