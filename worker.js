@@ -1884,7 +1884,7 @@ ${faqSectionHtml}
 <script type="module">
 import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, setPersistence, indexedDBLocalPersistence, browserLocalPersistence, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, updateDoc, arrayUnion, arrayRemove, collection, query, where, orderBy, onSnapshot, addDoc, deleteDoc, getDocs, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, initializeFirestore, persistentLocalCache, doc, getDoc, updateDoc, arrayUnion, arrayRemove, collection, query, where, orderBy, onSnapshot, addDoc, deleteDoc, getDocs, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyD4Cfni7D2Kk_t6qeZ4jcWesIabnSM15mk",
@@ -1896,7 +1896,12 @@ const firebaseConfig = {
 };
 const fireApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(fireApp);
-const db = getFirestore(fireApp);
+let db;
+try {
+    db = initializeFirestore(fireApp, { localCache: persistentLocalCache() });
+} catch(e) {
+    db = getFirestore(fireApp);
+}
 
 // CRITICAL FIX: Capacitor/APK WebView mein session reliably persist karne ke liye
 // (login.html jaisa hi fix, taake dono pages ek jaisi persistence use karein)
@@ -1971,8 +1976,9 @@ onAuthStateChanged(auth, async (user) => {
     loadComments();
 });
 
-async function loadLikes() {
-    clog('LIKES', 'Loading likes for POST_ID=' + POST_ID);
+async function loadLikes(attempt) {
+    attempt = attempt || 1;
+    clog('LIKES', 'Loading likes POST_ID=' + POST_ID + ' attempt=' + attempt);
     try {
         const snap = await getDoc(doc(db, "posts", POST_ID));
         if (snap.exists()) {
@@ -1980,10 +1986,15 @@ async function loadLikes() {
             clog('LIKES', 'Loaded ' + likesArr.length + ' likes');
             updateLikeUI();
         } else {
-            clog('LIKES', 'Document not found in Firestore for POST_ID=' + POST_ID, 'error');
+            clog('LIKES', 'Document not found POST_ID=' + POST_ID, 'error');
         }
     } catch(e) {
-        clog('LIKES', 'ERROR: ' + e.message, 'error');
+        clog('LIKES', 'ERROR attempt=' + attempt + ': ' + e.message, 'error');
+        if (attempt < 4) {
+            const delay = attempt * 1500;
+            clog('LIKES', 'Retrying in ' + delay + 'ms...');
+            setTimeout(() => loadLikes(attempt + 1), delay);
+        }
     }
 }
 
@@ -3653,7 +3664,7 @@ ${chatBtn}
 <script type="module">
 import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, setPersistence, indexedDBLocalPersistence, browserLocalPersistence, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, updateDoc, arrayUnion, arrayRemove, collection, query, where, orderBy, onSnapshot, addDoc, deleteDoc, getDocs, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, initializeFirestore, persistentLocalCache, doc, getDoc, updateDoc, arrayUnion, arrayRemove, collection, query, where, orderBy, onSnapshot, addDoc, deleteDoc, getDocs, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyD4Cfni7D2Kk_t6qeZ4jcWesIabnSM15mk",
@@ -3665,7 +3676,12 @@ const firebaseConfig = {
 };
 const fireApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(fireApp);
-const db = getFirestore(fireApp);
+let db;
+try {
+    db = initializeFirestore(fireApp, { localCache: persistentLocalCache() });
+} catch(e) {
+    db = getFirestore(fireApp);
+}
 
 // CRITICAL FIX: Capacitor/APK WebView mein session reliably persist karne ke liye
 // (login.html jaisa hi fix, taake dono pages ek jaisi persistence use karein)
@@ -3740,8 +3756,9 @@ onAuthStateChanged(auth, async (user) => {
     loadComments();
 });
 
-async function loadLikes() {
-    clog('LIKES-UPDATE', 'Loading for POST_ID=' + POST_ID);
+async function loadLikes(attempt) {
+    attempt = attempt || 1;
+    clog('LIKES-UPDATE', 'Loading POST_ID=' + POST_ID + ' attempt=' + attempt);
     try {
         const snap = await getDoc(doc(db, "posts", POST_ID));
         if (snap.exists()) {
@@ -3752,7 +3769,12 @@ async function loadLikes() {
             clog('LIKES-UPDATE', 'No document for POST_ID=' + POST_ID, 'error');
         }
     } catch(e) {
-        clog('LIKES-UPDATE', 'ERROR: ' + e.message, 'error');
+        clog('LIKES-UPDATE', 'ERROR attempt=' + attempt + ': ' + e.message, 'error');
+        if (attempt < 4) {
+            const delay = attempt * 1500;
+            clog('LIKES-UPDATE', 'Retrying in ' + delay + 'ms...');
+            setTimeout(() => loadLikes(attempt + 1), delay);
+        }
     }
 }
 
