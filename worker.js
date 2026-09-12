@@ -1987,6 +1987,20 @@ async function loadLikes() {
     }
 }
 
+function formatK(n){
+    n = parseInt(n, 10) || 0;
+    if (n < 1000) return String(n);
+    const v = n / 1000;
+    return (Number.isInteger(v) ? v.toFixed(0) : v.toFixed(1)) + 'k';
+}
+
+function formatK(n){
+    n = parseInt(n, 10) || 0;
+    if (n < 1000) return String(n);
+    const v = n / 1000;
+    return (Number.isInteger(v) ? v.toFixed(0) : v.toFixed(1)) + 'k';
+}
+
 function updateLikeUI() {
     const btn = document.getElementById('like-btn');
     const countEl = document.getElementById('like-count-display');
@@ -3740,6 +3754,13 @@ async function loadLikes() {
     } catch(e) {
         clog('LIKES-UPDATE', 'ERROR: ' + e.message, 'error');
     }
+}
+
+function formatK(n){
+    n = parseInt(n, 10) || 0;
+    if (n < 1000) return String(n);
+    const v = n / 1000;
+    return (Number.isInteger(v) ? v.toFixed(0) : v.toFixed(1)) + 'k';
 }
 
 function updateLikeUI() {
