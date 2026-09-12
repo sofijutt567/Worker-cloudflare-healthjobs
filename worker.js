@@ -98,6 +98,8 @@ __name(checkAiChatRateLimit, "checkAiChatRateLimit");
 var worker_default = {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const _reqStart = Date.now();
+    console.log(`[REQ] ${request.method} ${url.pathname}${url.search}`);
     const corsHeaders = {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS",
@@ -282,6 +284,7 @@ var worker_default = {
         "This job post may have been removed or the link is incorrect."
       );
       const verified = await isUserVerified(post.posterId, env);
+      console.log(`[POST-PAGE] slug=${slug} docId=${post._docId || slug} type=${post.type || 'employer_post'} found=true`);
       const html = await buildPostPage(post, slug, verified, env);
       ctx.waitUntil(
         env.JOBS_KV.put(`job:${slug}`, html, { expirationTtl: KV_TTL }).catch((e) => console.error("KV write error:", e))
@@ -310,6 +313,7 @@ var worker_default = {
         "This update may have been removed or the link is incorrect."
       );
       const verified = await isUserVerified(post.posterId, env);
+      console.log(`[UPDATE-PAGE] slug=${slug} docId=${post._docId || slug} type=${post.type} found=true`);
       const html = buildUpdatePage(post, post._docId || slug, verified);
       ctx.waitUntil(
         env.JOBS_KV.put(`update:${slug}`, html, { expirationTtl: KV_TTL }).catch((e) => console.error("KV write error (update):", e))
@@ -345,18 +349,42 @@ var worker_default = {
       return htmlResponse(html, { "X-Cache": "MISS" });
     }
     if (url.pathname === "/api/related-jobs-pool") {
-      const pool = await env.JOBS_KV.get("related_jobs_pool", { type: "text" });
-      if (pool) return new Response(pool, { headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "public, max-age=3600" } });
-      await refreshRelatedPools(env);
-      const fresh = await env.JOBS_KV.get("related_jobs_pool", { type: "text" });
-      return new Response(fresh || "[]", { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      try {
+        const pool = await env.JOBS_KV.get("related_jobs_pool", { type: "text" });
+        if (pool) {
+          const parsed = JSON.parse(pool);
+          console.log(`[RELATED-JOBS-POOL] KV hit — ${parsed.length} items`);
+          return new Response(pool, { headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "public, max-age=3600" } });
+        }
+        console.log("[RELATED-JOBS-POOL] KV miss — refreshing pool...");
+        await refreshRelatedPools(env);
+        const fresh = await env.JOBS_KV.get("related_jobs_pool", { type: "text" });
+        const freshParsed = fresh ? JSON.parse(fresh) : [];
+        console.log(`[RELATED-JOBS-POOL] After refresh — ${freshParsed.length} items`);
+        return new Response(fresh || "[]", { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      } catch(e) {
+        console.error("[RELATED-JOBS-POOL] ERROR:", e.message, e.stack);
+        return new Response("[]", { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
     }
     if (url.pathname === "/api/related-updates-pool") {
-      const pool = await env.JOBS_KV.get("related_updates_pool", { type: "text" });
-      if (pool) return new Response(pool, { headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "public, max-age=3600" } });
-      await refreshRelatedPools(env);
-      const fresh = await env.JOBS_KV.get("related_updates_pool", { type: "text" });
-      return new Response(fresh || "[]", { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      try {
+        const pool = await env.JOBS_KV.get("related_updates_pool", { type: "text" });
+        if (pool) {
+          const parsed = JSON.parse(pool);
+          console.log(`[RELATED-UPDATES-POOL] KV hit — ${parsed.length} items`);
+          return new Response(pool, { headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "public, max-age=3600" } });
+        }
+        console.log("[RELATED-UPDATES-POOL] KV miss — refreshing pool...");
+        await refreshRelatedPools(env);
+        const fresh = await env.JOBS_KV.get("related_updates_pool", { type: "text" });
+        const freshParsed = fresh ? JSON.parse(fresh) : [];
+        console.log(`[RELATED-UPDATES-POOL] After refresh — ${freshParsed.length} items`);
+        return new Response(fresh || "[]", { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      } catch(e) {
+        console.error("[RELATED-UPDATES-POOL] ERROR:", e.message, e.stack);
+        return new Response("[]", { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
     }
     if (url.pathname === "/api/ai-chat" && request.method === "POST") {
       try {
@@ -445,7 +473,11 @@ var worker_default = {
           })
         });
         const fsData = await fsRes.json();
-        console.log("Track result:", JSON.stringify(fsData));
+        if (fsRes.ok) {
+          console.log(`[TRACK] OK — postId=${postId} field=${field} col=${collectionName}`);
+        } else {
+          console.error(`[TRACK] Firestore error — postId=${postId} field=${field}`, JSON.stringify(fsData));
+        }
         return new Response(JSON.stringify({ success: true }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" }
@@ -456,6 +488,20 @@ var worker_default = {
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
       }
+    }
+    if (url.pathname === "/api/client-log" && request.method === "POST") {
+      try {
+        const body = await request.json();
+        const tag = body.tag || "CLIENT";
+        const msg = body.msg || "";
+        const lvl = body.lvl || "log";
+        if (lvl === "error") {
+          console.error(`[${tag}] ${msg}`);
+        } else {
+          console.log(`[${tag}] ${msg}`);
+        }
+      } catch(e) {}
+      return new Response(null, { status: 204, headers: corsHeaders });
     }
     if (url.pathname === "/api/clear-verified-cache" && request.method === "POST") {
       try {
@@ -587,8 +633,9 @@ async function refreshRelatedPools(env) {
       };
     });
     await env.JOBS_KV.put("related_jobs_pool", JSON.stringify(docs), { expirationTtl: 259200 });
+    console.log(`[REFRESH] Jobs pool saved — ${docs.length} docs`);
   } catch (e) {
-    console.error("Jobs pool refresh error:", e);
+    console.error("[REFRESH] Jobs pool ERROR:", e.message, e.stack);
   }
   try {
     const res = await fetch(
@@ -625,8 +672,9 @@ async function refreshRelatedPools(env) {
       };
     });
     await env.JOBS_KV.put("related_updates_pool", JSON.stringify(docs), { expirationTtl: 259200 });
+    console.log(`[REFRESH] Updates pool saved — ${docs.length} docs`);
   } catch (e) {
-    console.error("Updates pool refresh error:", e);
+    console.error("[REFRESH] Updates pool ERROR:", e.message, e.stack);
   }
 }
 __name(refreshRelatedPools, "refreshRelatedPools");
@@ -1891,10 +1939,24 @@ let currentUser = undefined;
 let currentUserProfile = null;
 let likesArr = [];
 
+// ── Cloudflare remote logger ──────────────────────────────────────────
+function clog(tag, msg, lvl='log') {
+    try {
+        fetch('/api/client-log', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tag, msg: String(msg), lvl }),
+            keepalive: true
+        }).catch(()=>{});
+    } catch(e) {}
+}
+// ─────────────────────────────────────────────────────────────────────
+
 window.__authUser = undefined;
 onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     window.__authUser = user;
+    clog('AUTH', user ? 'Logged in uid=' + user.uid : 'Not logged in (guest)');
     if (user) {
         try {
             const snap = await getDoc(doc(db, "users", user.uid));
@@ -1910,13 +1972,19 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 async function loadLikes() {
+    clog('LIKES', 'Loading likes for POST_ID=' + POST_ID);
     try {
         const snap = await getDoc(doc(db, "posts", POST_ID));
         if (snap.exists()) {
             likesArr = snap.data().likes || [];
+            clog('LIKES', 'Loaded ' + likesArr.length + ' likes');
             updateLikeUI();
+        } else {
+            clog('LIKES', 'Document not found in Firestore for POST_ID=' + POST_ID, 'error');
         }
-    } catch(e) {}
+    } catch(e) {
+        clog('LIKES', 'ERROR: ' + e.message, 'error');
+    }
 }
 
 function updateLikeUI() {
@@ -2300,8 +2368,9 @@ async function trackClick(postId, field) {
 }
 
 async function loadRelatedUpdates() {
+    clog('RELATED-UPDATES', 'Starting load...');
     const list = document.getElementById('related-updates-list');
-    if (!list) return;
+    if (!list) { clog('RELATED-UPDATES', 'ERROR: #related-updates-list element not found in DOM!', 'error'); return; }
     const CURRENT_SLUG = ${JSON.stringify(slug)};
     const daySeed = Math.floor(Date.now() / 86400000);
     function seededShuffle(arr, seed) {
@@ -2315,10 +2384,13 @@ async function loadRelatedUpdates() {
     }
     try {
         const res = await fetch('/api/related-updates-pool');
+        if (!res.ok) { clog('RELATED-UPDATES', 'API error status=' + res.status, 'error'); }
         const pool = await res.json();
+        clog('RELATED-UPDATES', 'Pool size=' + pool.length + ' currentSlug=' + CURRENT_SLUG);
         const filtered = seededShuffle(
             pool.filter(p => p.slug !== CURRENT_SLUG), daySeed
         ).slice(0, 5);
+        clog('RELATED-UPDATES', 'Filtered count=' + filtered.length);
         if (!filtered.length) {
             list.innerHTML = '<p style="font-size:13px;color:#94a3b8;text-align:center;padding:14px 0;">No related updates found.</p>';
             return;
@@ -2340,7 +2412,7 @@ async function loadRelatedUpdates() {
         }).join('');
     } catch(err) {
         list.innerHTML = '';
-        console.log('Related updates error:', err);
+        clog('RELATED-UPDATES', 'CATCH ERROR: ' + err.message, 'error');
     }
 }
 async function trackView(postId) {
@@ -2364,8 +2436,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // \u2500\u2500 Related Jobs Loader \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 async function loadRelatedJobs() {
+    clog('RELATED-JOBS', 'Starting load...');
     const grid = document.getElementById('related-jobs-grid');
-    if (!grid) return;
+    if (!grid) { clog('RELATED-JOBS', 'ERROR: #related-jobs-grid not found in DOM!', 'error'); return; }
     const CURRENT_SLUG = ${JSON.stringify(slug)};
     const CURRENT_CATEGORY = ${JSON.stringify(category)};
     const daySeed = Math.floor(Date.now() / 86400000);
@@ -3621,10 +3694,24 @@ let currentUser = undefined;
 let currentUserProfile = null;
 let likesArr = [];
 
+// ── Cloudflare remote logger ──────────────────────────────────────────
+function clog(tag, msg, lvl='log') {
+    try {
+        fetch('/api/client-log', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tag, msg: String(msg), lvl }),
+            keepalive: true
+        }).catch(()=>{});
+    } catch(e) {}
+}
+// ─────────────────────────────────────────────────────────────────────
+
 window.__authUser = undefined;
 onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     window.__authUser = user;
+    clog('AUTH-UPDATE', user ? 'uid=' + user.uid : 'guest');
     if (user) {
         try {
             const snap = await getDoc(doc(db, "users", user.uid));
@@ -3640,13 +3727,19 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 async function loadLikes() {
+    clog('LIKES-UPDATE', 'Loading for POST_ID=' + POST_ID);
     try {
         const snap = await getDoc(doc(db, "posts", POST_ID));
         if (snap.exists()) {
             likesArr = snap.data().likes || [];
+            clog('LIKES-UPDATE', 'Got ' + likesArr.length + ' likes');
             updateLikeUI();
+        } else {
+            clog('LIKES-UPDATE', 'No document for POST_ID=' + POST_ID, 'error');
         }
-    } catch(e) {}
+    } catch(e) {
+        clog('LIKES-UPDATE', 'ERROR: ' + e.message, 'error');
+    }
 }
 
 function updateLikeUI() {
@@ -4001,8 +4094,9 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 async function loadRelatedUpdates() {
+    clog('RELATED-UPDATES-PAGE', 'Starting...');
     const list = document.getElementById('related-updates-list');
-    if (!list) return;
+    if (!list) { clog('RELATED-UPDATES-PAGE', 'ERROR: #related-updates-list not found!', 'error'); return; }
     const CURRENT_SLUG = ${JSON.stringify(slug)};
     const daySeed = Math.floor(Date.now() / 86400000);
     function seededShuffle(arr, seed) {
@@ -4150,25 +4244,21 @@ function sharePost(){
     }
 }
 function bumpShareCount(){
+    clog('SHARE', 'Bumping share count for POST_ID=' + POST_ID);
     try {
         fetch('/api/track', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ postId: POST_ID, field: 'shares', collection: 'posts' })
-        });
+        }).then(r => clog('SHARE', 'Track response status=' + r.status))
+          .catch(e => clog('SHARE', 'Track fetch error: ' + e.message, 'error'));
         var el = document.getElementById('share-count-display');
         if (el) {
             var n = (parseInt(el.getAttribute('data-count') || '0', 10) || 0) + 1;
             el.setAttribute('data-count', n);
             el.innerText = n + ' Shares';
         }
-        var el2 = document.getElementById('pa-share-count-inline-text');
-        if (el2) {
-            var m = (parseInt(el2.getAttribute('data-count') || '0', 10) || 0) + 1;
-            el2.setAttribute('data-count', m);
-            el2.innerText = m + ' Shares';
-        }
-    } catch(ex) {}
+    } catch(ex) { clog('SHARE', 'bumpShareCount error: ' + ex.message, 'error'); }
 }
 <\/script>
 <!-- WhatsApp Channel Float Button -->
