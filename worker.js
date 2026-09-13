@@ -611,7 +611,10 @@ async function refreshRelatedPools(env) {
       }
     );
     const data = await res.json();
-    const docs = (data || []).filter((d) => d.document).map((d) => {
+    if (!res.ok || !Array.isArray(data) || data.some((d) => d && d.error)) {
+      console.error(`[REFRESH] Jobs pool QUERY FAILED — status=${res.status}`, JSON.stringify(data).slice(0, 800));
+    }
+    const docs = (Array.isArray(data) ? data : []).filter((d) => d.document).map((d) => {
       const f = d.document.fields || {};
       const docId = d.document.name.split("/").pop();
       const imgArr = f.media?.arrayValue?.values || [];
@@ -652,7 +655,10 @@ async function refreshRelatedPools(env) {
       }
     );
     const data = await res.json();
-    const docs = (data || []).filter((d) => d.document).map((d) => {
+    if (!res.ok || !Array.isArray(data) || data.some((d) => d && d.error)) {
+      console.error(`[REFRESH] Updates pool QUERY FAILED — status=${res.status}`, JSON.stringify(data).slice(0, 800));
+    }
+    const docs = (Array.isArray(data) ? data : []).filter((d) => d.document).map((d) => {
       const f = d.document.fields || {};
       const docId = d.document.name.split("/").pop();
       const slug = f.slug?.stringValue || docId;
@@ -2509,7 +2515,27 @@ async function loadRelatedJobs() {
         // every section below is built from this ONE payload, so adding more
         // sections here never adds extra Firestore reads.
         const res = await fetch('/api/related-jobs-pool');
-        const pool = await res.json();
+        clog('RELATED-JOBS', 'Pool fetch status=' + res.status + ' ok=' + res.ok);
+        if (!res.ok) {
+            const bodyText = await res.text().catch(() => '');
+            clog('RELATED-JOBS', 'ERROR: non-OK response, status=' + res.status + ' body=' + bodyText.slice(0, 300), 'error');
+            fillSection('related-jobs-grid', null, [], false);
+            return;
+        }
+        let pool;
+        try {
+            pool = await res.json();
+        } catch (parseErr) {
+            clog('RELATED-JOBS', 'ERROR: pool JSON parse failed: ' + parseErr.message, 'error');
+            fillSection('related-jobs-grid', null, [], false);
+            return;
+        }
+        if (!Array.isArray(pool)) {
+            clog('RELATED-JOBS', 'ERROR: pool is not an array, got: ' + JSON.stringify(pool).slice(0, 300), 'error');
+            fillSection('related-jobs-grid', null, [], false);
+            return;
+        }
+        clog('RELATED-JOBS', 'Pool loaded, ' + pool.length + ' total items');
         const others = pool.filter(p => p.id !== CURRENT_SLUG);
         const shuffled = seededShuffle(others, daySeed);
 
@@ -2527,9 +2553,11 @@ async function loadRelatedJobs() {
 
         const salary80 = shuffled.filter(p => (p.salaryMax != null && p.salaryMax >= 80000) || (p.salaryMin != null && p.salaryMin >= 80000)).slice(0, 5);
         fillSection('salary-80-grid', 'salary-80-section', salary80, true);
+
+        clog('RELATED-JOBS', 'Done — rendered ' + Math.min(shuffled.length, 5) + ' related cards');
     } catch(err) {
-        grid.innerHTML = '';
-        console.log('Related jobs error:', err);
+        fillSection('related-jobs-grid', null, [], false);
+        clog('RELATED-JOBS', 'ERROR: ' + (err && err.message ? err.message : String(err)), 'error');
     }
 }
 
