@@ -2005,13 +2005,6 @@ function formatK(n){
     return (Number.isInteger(v) ? v.toFixed(0) : v.toFixed(1)) + 'k';
 }
 
-function formatK(n){
-    n = parseInt(n, 10) || 0;
-    if (n < 1000) return String(n);
-    const v = n / 1000;
-    return (Number.isInteger(v) ? v.toFixed(0) : v.toFixed(1)) + 'k';
-}
-
 function updateLikeUI() {
     const btn = document.getElementById('like-btn');
     const countEl = document.getElementById('like-count-display');
@@ -2904,7 +2897,7 @@ function requestApplyAssist(){
     if(btn){ btn.disabled = true; btn.textContent = 'Loading...'; }
     const _slug = (typeof POST_ID !== 'undefined' && POST_ID)
         ? POST_ID
-        : window.location.pathname.replace(/^\/(?:jobs|updates)\//, '').replace(/\/$/, '').trim();
+        : window.location.pathname.replace(/^\\/(?:jobs|updates)\\//, '').replace(/\\/$/, '').trim();
     let applyUrl = APPLY_ASSIST_WORKER_URL + '/apply?job=' + encodeURIComponent(_slug);
     if (currentUser) {
         applyUrl += '&uid=' + encodeURIComponent(currentUser.uid);
